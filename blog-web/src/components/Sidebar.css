@@ -1,0 +1,79 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-title {
+  margin-bottom: 16px;
+  font-size: 1.25rem;
+  border-bottom: 1px solid var(--card-border);
+  padding-bottom: 12px;
+}
+
+.popular-post-item {
+  display: block;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--glass-border);
+  transition: opacity 0.2s ease;
+}
+
+.popular-post-item:last-child {
+  border-bottom: none;
+}
+
+.popular-post-item:hover {
+  opacity: 0.8;
+}
+
+.popular-post-item h4 {
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.popular-post-item .views {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.category-list {
+  list-style: none;
+  padding: 0;
+}
+
+.category-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--glass-border);
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+.category-link:last-child {
+  border-bottom: none;
+}
+
+.category-link:hover {
+  color: var(--accent);
+}
+
+.tag-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.newsletter-section p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.newsletter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

@@ -1,0 +1,13 @@
+.tag-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.tag-badge:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
