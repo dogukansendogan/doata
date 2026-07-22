@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, ArrowRight, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Eye, EyeOff, Globe } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
@@ -8,50 +8,54 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const { login } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { loginWithEmail, loginWithGoogle } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       addToast('Lütfen tüm alanları doldurun', 'error');
       return;
     }
-    const name = email.split('@')[0];
-    const displayName = name.charAt(0).toUpperCase() + name.slice(1);
-    const err = login(displayName, email);
-    if (err) {
-      addToast(err, 'error');
-      return;
+    setLoading(true);
+    try {
+      const err = await loginWithEmail(email, password);
+      if (err) {
+        addToast(err, 'error');
+      } else {
+        addToast(`Hoş geldiniz! 👋`, 'success');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error(error);
+      addToast('Giriş yapılırken bir hata oluştu', 'error');
+    } finally {
+      setLoading(false);
     }
-    addToast(`Hoş geldiniz, ${displayName}! 👋`, 'success');
-    navigate('/');
   };
 
-  const handleQuickAdmin = () => {
-    const err = login('Admin', 'admin@doata.com');
-    if (err) {
-      addToast(err, 'error');
-      return;
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      const err = await loginWithGoogle();
+      if (err) {
+        addToast(err, 'error');
+      } else {
+        addToast('Google ile başarıyla giriş yapıldı 🔑', 'success');
+        navigate('/');
+      }
+    } catch (error) {
+      console.error(error);
+      addToast('Google ile giriş başarısız oldu.', 'error');
+    } finally {
+      setLoading(false);
     }
-    addToast('Admin olarak giriş yapıldı 🔑', 'success');
-    navigate('/');
-  };
-
-  const handleQuickUser = () => {
-    const err = login('Zeynep', 'zeynep@mail.com');
-    if (err) {
-      addToast(err, 'error');
-      return;
-    }
-    addToast('Kullanıcı olarak giriş yapıldı 👤', 'success');
-    navigate('/');
   };
 
   return (
     <div className="fade-in-up" style={{ maxWidth: '420px', margin: '60px auto' }}>
-      {/* Card */}
       <div className="glass-card">
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
@@ -87,12 +91,14 @@ export default function Login() {
                 onChange={e => setEmail(e.target.value)}
                 placeholder="ornek@mail.com"
                 style={{ paddingLeft: '40px' }}
+                required
+                disabled={loading}
               />
             </div>
           </div>
 
           {/* Password */}
-          <div className="form-group">
+          <div className="form-group" style={{ marginBottom: '24px' }}>
             <label className="form-label" htmlFor="password">
               Şifre
             </label>
@@ -109,6 +115,8 @@ export default function Login() {
                 onChange={e => setPassword(e.target.value)}
                 placeholder="••••••••"
                 style={{ paddingLeft: '40px', paddingRight: '44px' }}
+                required
+                disabled={loading}
               />
               <button
                 type="button"
@@ -127,62 +135,53 @@ export default function Login() {
           <button
             type="submit"
             className="btn-primary"
-            style={{ width: '100%', padding: '14px', fontSize: '1rem', gap: '8px' }}
+            disabled={loading}
+            style={{ width: '100%', padding: '14px', fontSize: '1rem', gap: '8px', justifyContent: 'center' }}
           >
-            Giriş Yap <ArrowRight size={18} />
+            {loading ? 'Giriş Yapılıyor...' : 'Giriş Yap'} <ArrowRight size={18} />
           </button>
         </form>
 
-        <div style={{ textAlign: 'center', marginTop: '20px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0', gap: '10px' }}>
+          <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>veya</span>
+          <div style={{ flex: 1, height: '1px', background: 'var(--card-border)' }} />
+        </div>
+
+        {/* Google Login Button */}
+        <button
+          onClick={handleGoogleLogin}
+          type="button"
+          disabled={loading}
+          style={{
+            width: '100%',
+            padding: '12px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--card-border)',
+            background: 'var(--bg-color)',
+            color: 'var(--text-primary)',
+            fontSize: '0.9rem',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+          }}
+          onMouseOver={e => (e.currentTarget.style.background = 'var(--card-border)')}
+          onMouseOut={e => (e.currentTarget.style.background = 'var(--bg-color)')}
+        >
+          <Globe size={18} style={{ color: '#ea4335' }} />
+          Google ile Giriş Yap
+        </button>
+
+        <div style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.88rem', color: 'var(--text-secondary)' }}>
           Hesabınız yok mu?{' '}
           <Link to="/register" style={{ color: 'var(--accent)', fontWeight: 600 }}>
             Kayıt Ol
           </Link>
-        </div>
-
-        {/* Demo login buttons */}
-        <div style={{
-          marginTop: '28px', paddingTop: '24px',
-          borderTop: '1px solid var(--card-border)',
-        }}>
-          <p style={{
-            fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.1em', color: 'var(--text-muted)',
-            textAlign: 'center', marginBottom: '12px',
-          }}>
-            Demo Girişleri
-          </p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              type="button"
-              onClick={handleQuickAdmin}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--accent-mid)',
-                background: 'var(--accent-light)', color: 'var(--accent)',
-                cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                fontWeight: 600, fontSize: '0.82rem', transition: 'all 0.2s',
-              }}
-            >
-              🔑 Admin
-            </button>
-            <button
-              type="button"
-              onClick={handleQuickUser}
-              style={{
-                flex: 1, padding: '10px', borderRadius: 'var(--radius-sm)',
-                border: '1px solid var(--card-border)',
-                background: 'transparent', color: 'var(--text-secondary)',
-                cursor: 'pointer', fontFamily: 'var(--font-sans)',
-                fontWeight: 600, fontSize: '0.82rem', transition: 'all 0.2s',
-              }}
-            >
-              👤 Kullanıcı
-            </button>
-          </div>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '10px' }}>
-            Sadece admin yazı ekleyebilir. Üyeler yorum & beğeni yapabilir.
-          </p>
         </div>
       </div>
     </div>
