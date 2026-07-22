@@ -10,6 +10,8 @@ const PERKS = [
   'Yazı arşivine erişebilirsiniz',
 ];
 
+import { isValidEmail, isStrongPassword, sanitizeString } from '../security/sanitizer';
+
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -24,8 +26,27 @@ export default function Register() {
       addToast('Lütfen tüm alanları doldurun', 'error');
       return;
     }
-    login(name, email);
-    addToast(`Hoş geldiniz, ${name}! Hesabınız oluşturuldu 🎉`, 'success');
+
+    // Email structure check
+    if (!isValidEmail(email)) {
+      addToast('Geçersiz e-posta adresi biçimi.', 'error');
+      return;
+    }
+
+    // Password strength check
+    if (!isStrongPassword(password)) {
+      addToast('Şifre en az 8 karakter uzunluğunda olmalı, en az 1 harf ve 1 rakam içermelidir.', 'error');
+      return;
+    }
+
+    const cleanName = sanitizeString(name);
+    const err = login(cleanName, email);
+    if (err) {
+      addToast(err, 'error');
+      return;
+    }
+
+    addToast(`Hoş geldiniz, ${cleanName}! Hesabınız oluşturuldu 🎉`, 'success');
     navigate('/');
   };
 
