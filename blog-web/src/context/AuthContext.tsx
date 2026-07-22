@@ -203,8 +203,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       secureStorage.setItem(USER_SESSION_KEY, userDoc);
       return null;
     } catch (e: any) {
-      console.error(e);
-      return 'Google ile giriş başarısız oldu.';
+      console.error('Google login error detail:', e);
+      return `Google ile giriş başarısız oldu: ${e.message || e.code || 'Bilinmeyen hata'}`;
     }
   };
 
