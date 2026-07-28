@@ -3,17 +3,28 @@ import { Link } from 'react-router-dom';
 import {
   Edit, Trash2, LayoutDashboard, MessageSquare, BarChart2,
   Plus, Eye, Heart, Clock, Search, ArrowLeft, Check, X,
-  TrendingUp, FileText, Filter,
+  TrendingUp, FileText, Filter, UserCheck
 } from 'lucide-react';
 import type { Post, Comment, DashboardStats } from '../../types';
-import { getPosts, deletePost, getDashboardStats, getAllComments, deleteComment } from '../../api/posts';
+import { 
+  getPosts, 
+  deletePost, 
+  getDashboardStats, 
+  getAllComments, 
+  deleteComment,
+  getPendingAdminRequests,
+  approveAdminRequest,
+  rejectAdminRequest,
+  type AdminRequest
+} from '../../api/posts';
 
-type ActiveTab = 'posts' | 'comments' | 'analytics';
+type ActiveTab = 'posts' | 'comments' | 'analytics' | 'requests';
 type SortKey = 'views' | 'likes' | 'date';
 
 export default function AdminDashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [requests, setRequests] = useState<AdminRequest[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,20 +34,23 @@ export default function AdminDashboard() {
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [postsData, statsData, commentsData] = await Promise.all([
+      const [postsData, statsData, commentsData, requestsData] = await Promise.all([
         getPosts(),
         getDashboardStats(),
         getAllComments(),
+        getPendingAdminRequests(),
       ]);
       setPosts(postsData);
       setStats(statsData);
       setComments(commentsData);
+      setRequests(requestsData);
     } catch (err) {
       console.error('Veriler alınamadı:', err);
     } finally {
@@ -90,6 +104,27 @@ export default function AdminDashboard() {
       setComments(prev => prev.filter(c => c.id !== comment.id));
     }
     setDeletingCommentId(null);
+  };
+
+  // --- Admin requests ---
+  const handleApprove = async (userId: string) => {
+    setActionLoadingId(userId);
+    const success = await approveAdminRequest(userId);
+    if (success) {
+      setRequests(prev => prev.filter(r => r.id !== userId));
+      const newStats = await getDashboardStats();
+      setStats(newStats);
+    }
+    setActionLoadingId(null);
+  };
+
+  const handleReject = async (userId: string) => {
+    setActionLoadingId(userId);
+    const success = await rejectAdminRequest(userId);
+    if (success) {
+      setRequests(prev => prev.filter(r => r.id !== userId));
+    }
+    setActionLoadingId(null);
   };
 
   // --- Analytics ---
@@ -165,10 +200,10 @@ export default function AdminDashboard() {
         <nav style={{ padding: '20px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {([
             { tab: 'posts', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
-            { tab: 'posts', label: 'Yazılar', icon: <FileText size={18} /> },
             { tab: 'comments', label: 'Yorumlar', icon: <MessageSquare size={18} /> },
+            { tab: 'requests', label: 'Yetki Talepleri', icon: <UserCheck size={18} />, badge: requests.length },
             { tab: 'analytics', label: 'Analizler', icon: <BarChart2 size={18} /> },
-          ] as { tab: ActiveTab; label: string; icon: React.ReactNode }[]).map((item, idx) => (
+          ] as { tab: ActiveTab; label: string; icon: React.ReactNode; badge?: number }[]).map((item, idx) => (
             <button
               key={idx}
               onClick={() => setActiveTab(item.tab)}
@@ -183,7 +218,15 @@ export default function AdminDashboard() {
               }}
             >
               {item.icon}
-              {item.label}
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.badge && item.badge > 0 ? (
+                <span style={{ 
+                  background: 'var(--accent)', color: '#fff', 
+                  fontSize: '0.7rem', padding: '2px 7px', borderRadius: '10px', fontWeight: 700 
+                }}>
+                  {item.badge}
+                </span>
+              ) : null}
             </button>
           ))}
 
@@ -215,10 +258,10 @@ export default function AdminDashboard() {
         {/* Header */}
         <div style={{ marginBottom: '32px' }}>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            {activeTab === 'posts' ? 'Yazı Yönetimi' : activeTab === 'comments' ? 'Yorum Yönetimi' : 'Analizler'}
+            {activeTab === 'posts' ? 'Yazı Yönetimi' : activeTab === 'comments' ? 'Yorum Yönetimi' : activeTab === 'requests' ? 'Yetki Talepleri' : 'Analizler'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
-            {activeTab === 'posts' ? 'Tüm yazılarınızı buradan yönetin' : activeTab === 'comments' ? 'Okuyucu yorumlarını inceleyin ve yönetin' : 'Sitenizin performans analizleri'}
+            {activeTab === 'posts' ? 'Tüm yazılarınızı buradan yönetin' : activeTab === 'comments' ? 'Okuyucu yorumlarını inceleyin ve yönetin' : activeTab === 'requests' ? 'Yazar yetkisi isteyen kullanıcıların taleplerini onaylayın veya reddedin' : 'Sitenizin performans analizleri'}
           </p>
         </div>
 
@@ -251,7 +294,7 @@ export default function AdminDashboard() {
 
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: '1px solid var(--card-border)', paddingBottom: '0' }}>
-          {(['posts', 'comments', 'analytics'] as ActiveTab[]).map(tab => (
+          {(['posts', 'comments', 'requests', 'analytics'] as ActiveTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -265,7 +308,7 @@ export default function AdminDashboard() {
                 marginBottom: '-1px', transition: 'all 0.2s',
               }}
             >
-              {tab === 'posts' ? 'Yazılar' : tab === 'comments' ? 'Yorumlar' : 'Analizler'}
+              {tab === 'posts' ? 'Yazılar' : tab === 'comments' ? 'Yorumlar' : tab === 'requests' ? 'Yetki Talepleri' : 'Analizler'}
             </button>
           ))}
         </div>
@@ -591,6 +634,80 @@ export default function AdminDashboard() {
                 }} />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* ======= REQUESTS TAB ======= */}
+        {activeTab === 'requests' && (
+          <div className="glass-card-static" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '1rem', fontWeight: 700 }}>Bekleyen Yetki Talepleri</h3>
+            {requests.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px',
+                color: 'var(--text-muted)', fontSize: '0.9rem',
+                border: '1px dashed var(--card-border)', borderRadius: 'var(--radius-md)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
+              }}>
+                <UserCheck size={36} style={{ color: 'var(--text-muted)' }} />
+                <span>Bekleyen yazar/yönetici yetki talebi bulunmamaktadır.</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {requests.map(req => (
+                  <div key={req.id} style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '16px', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-color)', flexWrap: 'wrap', gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{
+                        width: '40px', height: '40px', borderRadius: '50%',
+                        background: 'var(--accent-light)', color: 'var(--accent)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden'
+                      }}>
+                        {req.avatar ? (
+                          <img src={req.avatar} alt={req.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          req.name.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{req.name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{req.email}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => handleApprove(req.id)}
+                        disabled={actionLoadingId === req.id}
+                        className="btn-primary"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 14px', fontSize: '0.8rem', background: 'var(--success)', border: 'none'
+                        }}
+                      >
+                        <Check size={14} />
+                        {actionLoadingId === req.id ? 'Onaylanıyor...' : 'Onayla'}
+                      </button>
+                      <button
+                        onClick={() => handleReject(req.id)}
+                        disabled={actionLoadingId === req.id}
+                        className="btn-ghost"
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '6px',
+                          padding: '8px 14px', fontSize: '0.8rem', color: 'var(--danger)', borderColor: 'rgba(211,69,69,0.2)'
+                        }}
+                      >
+                        <X size={14} />
+                        {actionLoadingId === req.id ? 'Reddediliyor...' : 'Reddet'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>

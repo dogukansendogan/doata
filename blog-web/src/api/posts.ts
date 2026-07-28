@@ -379,3 +379,97 @@ export const getDashboardStats = async (): Promise<DashboardStats> => {
     totalViews: postsList.reduce((sum, p) => sum + (p.views || 0), 0),
   };
 };
+
+// ==================== ROLE REQUESTS & APPROVALS ====================
+
+export interface AdminRequest {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  adminRequestStatus: 'none' | 'pending' | 'approved' | 'rejected';
+  role: 'admin' | 'user';
+}
+
+export const requestAdminRole = async (userId: string): Promise<boolean> => {
+  if (db) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { adminRequestStatus: 'pending' });
+      return true;
+    } catch (e) {
+      console.error('Firestore requestAdminRole failed:', e);
+    }
+  }
+  return false;
+};
+
+export const getPendingAdminRequests = async (): Promise<AdminRequest[]> => {
+  if (db) {
+    try {
+      const q = query(collection(db, 'users'), where('adminRequestStatus', '==', 'pending'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => {
+        const data = d.data();
+        return {
+          id: d.id,
+          name: data.name || '',
+          email: data.email || '',
+          avatar: data.avatar || '',
+          adminRequestStatus: data.adminRequestStatus || 'none',
+          role: data.role || 'user'
+        };
+      });
+    } catch (e) {
+      console.error('Firestore getPendingAdminRequests failed:', e);
+    }
+  }
+  return [];
+};
+
+export const approveAdminRequest = async (userId: string): Promise<boolean> => {
+  if (db) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { 
+        role: 'admin', 
+        adminRequestStatus: 'approved' 
+      });
+      return true;
+    } catch (e) {
+      console.error('Firestore approveAdminRequest failed:', e);
+    }
+  }
+  return false;
+};
+
+export const rejectAdminRequest = async (userId: string): Promise<boolean> => {
+  if (db) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, { 
+        adminRequestStatus: 'rejected' 
+      });
+      return true;
+    } catch (e) {
+      console.error('Firestore rejectAdminRequest failed:', e);
+    }
+  }
+  return false;
+};
+
+export const getUserProfile = async (userId: string): Promise<any | null> => {
+  if (db) {
+    try {
+      const userRef = doc(db, 'users', userId);
+      const docSnap = await getDoc(userRef);
+      if (docSnap.exists()) {
+        return docSnap.data();
+      }
+    } catch (e) {
+      console.error('Firestore getUserProfile failed:', e);
+    }
+  }
+  return null;
+};
+

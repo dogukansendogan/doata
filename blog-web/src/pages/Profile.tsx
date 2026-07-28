@@ -4,7 +4,7 @@ import { LogOut, Bookmark, Heart, Eye, Shield, PenSquare, LayoutDashboard } from
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import type { Post } from '../types';
-import { getBookmarkedPosts, getPostsByAuthor, getPosts } from '../api/posts';
+import { getBookmarkedPosts, getPostsByAuthor, getPosts, getUserProfile, requestAdminRole } from '../api/posts';
 
 function StatBadge({ icon, label, value }: { icon: React.ReactNode; label: string; value: number | string }) {
   return (
@@ -35,24 +35,49 @@ export default function Profile() {
   const [allPosts, setAllPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'bookmarks' | 'activity'>('bookmarks');
+  const [requestStatus, setRequestStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
+  const [requestLoading, setRequestLoading] = useState(false);
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     const fetchData = async () => {
       try {
-        const [bm, mp, ap] = await Promise.all([
+        const [bm, mp, ap, up] = await Promise.all([
           getBookmarkedPosts(),
           getPostsByAuthor(user.name),
           getPosts(),
+          getUserProfile(user.id)
         ]);
         setBookmarks(bm);
         setMyPosts(mp);
         setAllPosts(ap);
+        if (up) {
+          setRequestStatus(up.adminRequestStatus || 'none');
+        }
       } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     fetchData();
   }, [user, navigate]);
+
+  const handleRequestAdmin = async () => {
+    if (!user) return;
+    setRequestLoading(true);
+    try {
+      const success = await requestAdminRole(user.id);
+      if (success) {
+        setRequestStatus('pending');
+        addToast('Yönetici/Yazar yetki talebiniz başarıyla gönderildi. Onay bekleniyor.', 'success');
+      } else {
+        addToast('Talep gönderilirken bir hata oluştu.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      addToast('Talep gönderilirken hata oluştu.', 'error');
+    } finally {
+      setRequestLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -106,11 +131,40 @@ export default function Profile() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
             {isAdmin && (
               <Link to="/admin" className="btn-ghost" style={{ fontSize: '0.85rem' }}>
                 <LayoutDashboard size={16} /> Admin Panel
               </Link>
+            )}
+            {!isAdmin && (
+              requestStatus === 'pending' ? (
+                <span style={{ 
+                  fontSize: '0.78rem', fontWeight: 600, padding: '8px 14px', 
+                  borderRadius: 'var(--radius-sm)', border: '1px dashed var(--warning)', 
+                  color: 'var(--warning)', background: 'rgba(232,168,56,0.06)'
+                }}>
+                  Talep Değerlendiriliyor...
+                </span>
+              ) : requestStatus === 'rejected' ? (
+                <button 
+                  onClick={handleRequestAdmin} 
+                  disabled={requestLoading} 
+                  className="btn-primary" 
+                  style={{ fontSize: '0.85rem', padding: '10px 18px', background: 'var(--accent)', border: 'none' }}
+                >
+                  {requestLoading ? 'Gönderiliyor...' : 'Yeniden Yetki İste'}
+                </button>
+              ) : (
+                <button 
+                  onClick={handleRequestAdmin} 
+                  disabled={requestLoading} 
+                  className="btn-primary" 
+                  style={{ fontSize: '0.85rem', padding: '10px 18px' }}
+                >
+                  {requestLoading ? 'Gönderiliyor...' : 'Yazar Yetkisi İste'}
+                </button>
+              )
             )}
             <button
               onClick={handleLogout}
