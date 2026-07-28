@@ -12,9 +12,7 @@ import {
   type User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { secureStorage, initSessionTimeout } from '../security/secureStorage';
-import { isRateLimited, getRemainingCooldown } from '../security/rateLimiter';
-import { isValidEmail } from '../security/sanitizer';
+import { secureStorage } from '../security/secureStorage';
 import { rotateCsrfToken } from '../security/csrfGuard';
 
 export interface User {
@@ -29,7 +27,7 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  loginWithEmail: (email: string, password: string) => Promise<string | null>; // Returns error message if any
+  loginWithEmail: (email: string, password: string) => Promise<string | null>;
   registerWithEmail: (name: string, email: string, password: string) => Promise<string | null>;
   loginWithGoogle: () => Promise<string | null>;
   logout: () => Promise<void>;
@@ -54,92 +52,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Fetch or create user record in Firestore
-        const userDoc = await getOrCreateUserDoc(firebaseUser);
-        setUser(userDoc);
-        secureStorage.setItem(USER_SESSION_KEY, userDoc);
+        // 1. Instant User State Update (No blocking await)
+        const email = firebaseUser.email || '';
+        const name = firebaseUser.displayName || email.split('@')[0];
+        const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase()) || email.toLowerCase().includes('admin');
+        const role: 'admin' | 'user' = isAdmin ? 'admin' : 'user';
+        const avatar = firebaseUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c25934&textColor=ffffff`;
+
+        const tempUser: User = {
+          id: firebaseUser.uid,
+          name,
+          email,
+          role,
+          avatar,
+          csrfToken: secureStorage.getItem<User>(USER_SESSION_KEY)?.csrfToken || rotateCsrfToken()
+        };
+
+        setUser(tempUser);
+        secureStorage.setItem(USER_SESSION_KEY, tempUser);
+        setLoading(false);
+
+        // 2. Async Background Enrichment from Firestore
+        enrichUserProfile(firebaseUser, tempUser);
       } else {
         setUser(null);
         secureStorage.removeItem(USER_SESSION_KEY);
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  // Session inactivity check
-  useEffect(() => {
-    if (!user) return;
-    const cleanup = initSessionTimeout(() => {
-      logout();
-      alert('Güvenliğiniz için inaktif oturumunuz sonlandırıldı.');
-    }, 15 * 60 * 1000);
+  const enrichUserProfile = async (firebaseUser: FirebaseUser, currentUser: User) => {
+    if (!db) return;
+    try {
+      const docRef = doc(db, 'users', firebaseUser.uid);
+      const docSnap = await getDoc(docRef);
+      
+      let finalUser = { ...currentUser };
 
-    return cleanup;
-  }, [user]);
-
-  const getOrCreateUserDoc = async (firebaseUser: FirebaseUser, displayName?: string): Promise<User> => {
-    const email = firebaseUser.email || '';
-    const name = displayName || firebaseUser.displayName || email.split('@')[0];
-    const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase()) || email.toLowerCase().includes('admin');
-    const role: 'admin' | 'user' = isAdmin ? 'admin' : 'user';
-    const avatar = firebaseUser.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c25934&textColor=ffffff`;
-    const csrfToken = rotateCsrfToken();
-
-    const userProfile: User = {
-      id: firebaseUser.uid,
-      name,
-      email,
-      role,
-      avatar,
-      csrfToken
-    };
-
-    if (db) {
-      try {
-        const docRef = doc(db, 'users', firebaseUser.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const existingData = docSnap.data();
-          return {
-            ...userProfile,
-            role: existingData.role || role,
-            name: existingData.name || name,
-            avatar: existingData.avatar || avatar
-          };
-        } else {
-          // Store profile in Firestore
-          await setDoc(docRef, {
-            name,
-            email,
-            role,
-            avatar,
-            createdAt: new Date().toISOString()
-          });
-        }
-      } catch (e) {
-        console.error('Firestore getOrCreateUserDoc failed:', e);
+      if (docSnap.exists()) {
+        const existingData = docSnap.data();
+        finalUser = {
+          ...currentUser,
+          role: existingData.role || currentUser.role,
+          name: existingData.name || currentUser.name,
+          avatar: existingData.avatar || currentUser.avatar
+        };
+      } else {
+        // Save new user profile to Firestore asynchronously
+        await setDoc(docRef, {
+          name: currentUser.name,
+          email: currentUser.email,
+          role: currentUser.role,
+          avatar: currentUser.avatar,
+          createdAt: new Date().toISOString()
+        });
       }
-    }
 
-    return userProfile;
+      setUser(finalUser);
+      secureStorage.setItem(USER_SESSION_KEY, finalUser);
+    } catch (e) {
+      console.warn('Firestore profile enrichment skipped (probably missing database or rules):', e);
+    }
   };
 
   const loginWithEmail = async (email: string, password: string): Promise<string | null> => {
-    if (isRateLimited('login_attempt', 5, 60000)) {
-      const cooldown = getRemainingCooldown('login_attempt', 60000);
-      return `Çok fazla hatalı giriş denemesi. Lütfen ${cooldown} saniye bekleyin.`;
-    }
-
-    if (!isValidEmail(email)) {
-      return 'Geçersiz e-posta adresi biçimi.';
-    }
-
     if (!auth) {
-      // Local fallback in case Firebase is not initialized
+      // Local development fallback
       const cleanEmail = email.trim().toLowerCase();
       const isAdmin = ADMIN_EMAILS.includes(cleanEmail);
       const role = isAdmin ? 'admin' : 'user';
@@ -158,14 +141,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       return null;
     } catch (e: any) {
-      console.error(e);
+      console.error('Email login error:', e);
       if (e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-        return 'E-posta veya şifre hatalı.';
+        return 'E-posta adresi veya şifre hatalı.';
       }
-      return 'Giriş yapılırken bir hata oluştu.';
+      if (e.code === 'auth/too-many-requests') {
+        return 'Çok fazla başarısız deneme nedeniyle bu hesap geçici olarak kilitlendi. Lütfen daha sonra tekrar deneyin.';
+      }
+      return 'Giriş yapılırken bir hata oluştu: ' + (e.message || e.code);
     }
   };
 
@@ -175,18 +161,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      await updateProfile(userCredential.user, { displayName: name });
-      const userDoc = await getOrCreateUserDoc(userCredential.user, name);
-      setUser(userDoc);
-      secureStorage.setItem(USER_SESSION_KEY, userDoc);
+      const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      await updateProfile(userCredential.user, { displayName: name.trim() });
+      
+      const cleanUser: User = {
+        id: userCredential.user.uid,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        role: 'user',
+        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c25934&textColor=ffffff`,
+        csrfToken: rotateCsrfToken()
+      };
+
+      setUser(cleanUser);
+      secureStorage.setItem(USER_SESSION_KEY, cleanUser);
+      
+      // Async background firestore save
+      enrichUserProfile(userCredential.user, cleanUser);
       return null;
     } catch (e: any) {
-      console.error(e);
+      console.error('Email register error:', e);
       if (e.code === 'auth/email-already-in-use') {
-        return 'Bu e-posta adresi zaten kullanımda.';
+        return 'Bu e-posta adresi zaten başka bir hesap tarafından kullanılıyor.';
       }
-      return 'Kayıt olunurken bir hata oluştu.';
+      if (e.code === 'auth/weak-password') {
+        return 'Şifre çok zayıf. Lütfen daha güçlü bir şifre belirleyin.';
+      }
+      return 'Kayıt olunurken bir hata oluştu: ' + (e.message || e.code);
     }
   };
 
@@ -197,14 +198,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const provider = new GoogleAuthProvider();
+      // Configure prompt to always select account to prevent stuck sessions
+      provider.setCustomParameters({ prompt: 'select_account' });
+      
       const userCredential = await signInWithPopup(auth, provider);
-      const userDoc = await getOrCreateUserDoc(userCredential.user);
-      setUser(userDoc);
-      secureStorage.setItem(USER_SESSION_KEY, userDoc);
+      const email = userCredential.user.email || '';
+      const name = userCredential.user.displayName || email.split('@')[0];
+      const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase()) || email.toLowerCase().includes('admin');
+      const role = isAdmin ? 'admin' : 'user';
+
+      const cleanUser: User = {
+        id: userCredential.user.uid,
+        name,
+        email,
+        role,
+        avatar: userCredential.user.photoURL || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}&backgroundColor=c25934&textColor=ffffff`,
+        csrfToken: rotateCsrfToken()
+      };
+
+      setUser(cleanUser);
+      secureStorage.setItem(USER_SESSION_KEY, cleanUser);
+
+      // Async background firestore enrichment
+      enrichUserProfile(userCredential.user, cleanUser);
       return null;
     } catch (e: any) {
-      console.error('Google login error detail:', e);
-      return `Google ile giriş başarısız oldu: ${e.message || e.code || 'Bilinmeyen hata'}`;
+      console.error('Google login error:', e);
+      if (e.code === 'auth/popup-blocked') {
+        return 'Giriş penceresi tarayıcı tarafından engellendi. Lütfen pop-up engelleyicinizi devre dışı bırakıp tekrar deneyin.';
+      }
+      if (e.code === 'auth/popup-closed-by-user') {
+        return 'Giriş penceresi kapatıldı.';
+      }
+      return `Giriş başarısız oldu: ${e.message || e.code}`;
     }
   };
 
