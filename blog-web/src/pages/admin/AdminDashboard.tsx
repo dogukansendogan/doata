@@ -155,137 +155,134 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 gap-6 text-white">
-        <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-        <span className="text-slate-400 font-medium tracking-wide text-sm">Doata Dashboard Yükleniyor...</span>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#0b0f19', flexDirection: 'column', gap: '16px', color: '#ffffff' }}>
+        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>Admin paneli yükleniyor...</span>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
   const statCards = [
-    { label: 'Toplam Yazı', value: stats?.totalPosts ?? 0, icon: <BookOpen size={20} />, gradient: 'from-blue-500/10 to-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-950/40' },
-    { label: 'Görüntülenme', value: stats?.totalViews ?? 0, icon: <Eye size={20} />, gradient: 'from-amber-500/10 to-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-100 dark:border-orange-950/40' },
-    { label: 'Beğeni', value: stats?.totalLikes ?? 0, icon: <Heart size={20} />, gradient: 'from-rose-500/10 to-pink-500/10 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-950/40' },
-    { label: 'Yorum', value: stats?.totalComments ?? 0, icon: <MessageSquare size={20} />, gradient: 'from-emerald-500/10 to-teal-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-950/40' },
+    { label: 'Toplam Yazı', value: stats?.totalPosts ?? 0, icon: <BookOpen size={20} />, color: 'var(--accent)' },
+    { label: 'Görüntülenme', value: stats?.totalViews ?? 0, icon: <Eye size={20} />, color: '#E28743' },
+    { label: 'Beğeni', value: stats?.totalLikes ?? 0, icon: <Heart size={20} />, color: '#E05353' },
+    { label: 'Yorum', value: stats?.totalComments ?? 0, icon: <MessageSquare size={20} />, color: '#3E885B' },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#fafbfc] dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 font-sans antialiased">
+    <div className="admin-layout-wrapper">
       
-      {/* ====== SIDEBAR (Glassmorphic Dark Navy) ====== */}
-      <aside className="w-68 bg-slate-950 text-white flex flex-col h-screen sticky top-0 border-r border-slate-800/60 shrink-0">
+      {/* ====== SIDEBAR ====== */}
+      <aside className="admin-sidebar">
         
-        {/* Profile/Brand */}
-        <div className="p-6 border-b border-slate-800/60 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Sparkles size={18} className="text-white animate-pulse" />
+        {/* Logo */}
+        <div className="admin-sidebar-header">
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px',
+            background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Sparkles size={18} style={{ color: '#fff' }} />
           </div>
           <div>
-            <div className="font-bold text-sm tracking-tight text-white">Doata Control</div>
-            <div className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mt-0.5">Yazar & Yönetim</div>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#ffffff' }}>Doata Admin</div>
+            <div style={{ fontSize: '0.72rem', color: '#64748B', fontWeight: 600 }}>Yönetici Paneli</div>
           </div>
         </div>
 
-        {/* Navigation Section */}
-        <div className="px-3 py-4 flex-1 flex flex-col gap-1.5 overflow-y-auto">
-          <span className="px-4 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2 block">Menü</span>
+        {/* Nav */}
+        <nav className="admin-nav">
           {([
             { tab: 'posts', label: 'Yazı Yönetimi', icon: <FileText size={18} /> },
             { tab: 'comments', label: 'Yorumlar', icon: <MessageSquare size={18} /> },
-            { tab: 'requests', label: 'Yetki Talepleri', icon: <UserCheck size={18} />, badge: requests.length, badgeColor: 'bg-amber-500 text-white' },
-            { tab: 'subscribers', label: 'Bülten Aboneleri', icon: <Mail size={18} />, badge: subscribers.length, badgeColor: 'bg-indigo-600 text-white' },
-            { tab: 'analytics', label: 'Performans Analizleri', icon: <BarChart2 size={18} /> },
-          ] as { tab: ActiveTab; label: string; icon: React.ReactNode; badge?: number; badgeColor?: string }[]).map((item, idx) => {
+            { tab: 'requests', label: 'Yetki Talepleri', icon: <UserCheck size={18} />, badge: requests.length },
+            { tab: 'subscribers', label: 'Bülten Aboneleri', icon: <Mail size={18} />, badge: subscribers.length },
+            { tab: 'analytics', label: 'Analizler', icon: <BarChart2 size={18} /> },
+          ] as { tab: ActiveTab; label: string; icon: React.ReactNode; badge?: number }[]).map((item, idx) => {
             const isActive = activeTab === item.tab;
             return (
               <button
                 key={idx}
                 onClick={() => setActiveTab(item.tab)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-left text-[13px] font-semibold transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10 scale-[1.02]' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
-                }`}
+                className={`admin-nav-item ${isActive ? 'active' : ''}`}
               >
                 {item.icon}
-                <span className="flex-1">{item.label}</span>
+                <span style={{ flex: 1 }}>{item.label}</span>
                 {item.badge && item.badge > 0 ? (
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm ${
-                    isActive ? 'bg-white text-indigo-600' : item.badgeColor || 'bg-indigo-600 text-white'
-                  }`}>
+                  <span style={{ 
+                    background: isActive ? '#ffffff' : 'var(--accent)', 
+                    color: isActive ? 'var(--accent)' : '#ffffff', 
+                    fontSize: '0.7rem', padding: '2px 8px', borderRadius: '12px', fontWeight: 700 
+                  }}>
                     {item.badge}
                   </span>
                 ) : null}
               </button>
             );
           })}
-        </div>
+        </nav>
 
-        {/* Return to website */}
-        <div className="p-4 border-t border-slate-800/60">
-          <Link
-            to="/"
-            className="flex items-center justify-center gap-2 w-full py-2.5 bg-slate-800/50 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-bold border border-slate-700/40 transition duration-150"
-          >
-            <ArrowLeft size={14} />
-            <span>Ana Siteye Dön</span>
+        {/* Go back */}
+        <div style={{ padding: '20px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <Link to="/" className="admin-btn admin-btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+            <ArrowLeft size={14} /> Siteye Dön
           </Link>
         </div>
       </aside>
 
-      {/* ====== MAIN CONTENT SECTION ====== */}
-      <main className="flex-1 flex flex-col min-w-0">
+      {/* ====== MAIN CONTENT ====== */}
+      <main className="admin-main">
         
-        {/* Top Header Bar */}
-        <header className="h-16 border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 backdrop-blur-md flex items-center justify-between px-8 z-10 sticky top-0">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-widest">
+        {/* Header */}
+        <header className="admin-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
             <LayoutDashboard size={14} />
-            <span>Yönetim Paneli</span>
-            <span className="text-slate-300 dark:text-zinc-700">/</span>
-            <span className="text-indigo-500 dark:text-indigo-400">
-              {activeTab === 'posts' ? 'Yazılar' : activeTab === 'comments' ? 'Yorumlar' : activeTab === 'requests' ? 'Yetkiler' : activeTab === 'subscribers' ? 'Bülten' : 'Analizler'}
+            <span>YÖNETİM</span>
+            <span style={{ color: 'var(--card-border)' }}>/</span>
+            <span style={{ color: 'var(--accent)' }}>
+              {activeTab === 'posts' ? 'YAZILAR' : activeTab === 'comments' ? 'YORUMLAR' : activeTab === 'requests' ? 'YETKİLER' : activeTab === 'subscribers' ? 'BÜLTEN' : 'ANALİZLER'}
             </span>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 rounded-full text-[10px] font-bold uppercase tracking-wider">
-              <ShieldAlert size={12} />
-              <span>Güvenli Oturum</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 12px', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.2)', color: '#d97706', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700 }}>
+            <ShieldAlert size={12} /> GÜVENLİ OTURUM
           </div>
         </header>
 
-        {/* Content Container */}
-        <div className="p-8 max-w-7xl w-full mx-auto flex-1 flex flex-col">
+        {/* Content */}
+        <div className="admin-content">
           
-          {/* Dashboard Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+          {/* Stats Grid */}
+          <div className="admin-stats-grid">
             {statCards.map((card, i) => (
-              <div key={i} className="p-5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm flex items-center justify-between hover:shadow-md hover:border-slate-200 dark:hover:border-zinc-700 transition-all duration-200">
+              <div key={i} className="admin-stat-card">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">{card.label}</span>
-                  <h3 className="text-2xl font-extrabold text-slate-800 dark:text-zinc-100 mt-1">{card.value.toLocaleString('tr-TR')}</h3>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{card.label}</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: '4px', color: 'var(--text-primary)' }}>{card.value.toLocaleString('tr-TR')}</div>
                 </div>
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${card.gradient} border`}>
+                <div style={{
+                  width: '42px', height: '42px', borderRadius: '12px',
+                  background: `${card.color}12`, border: `1px solid ${card.color}25`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: card.color
+                }}>
                   {card.icon}
                 </div>
               </div>
             ))}
           </div>
 
-          {/* ======= WRAPPERS & VIEWS ======= */}
-
           {/* ======= POSTS TAB ======= */}
           {activeTab === 'posts' && (
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm overflow-hidden flex-1 flex flex-col">
+            <div className="admin-card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               
               {/* Filter bar */}
-              <div className="p-5 border-b border-slate-100 dark:border-zinc-850 flex flex-wrap gap-4 items-center justify-between bg-slate-50/40 dark:bg-zinc-900/30">
-                <div className="flex gap-2 flex-wrap">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
                   <select
                     value={categoryFilter}
                     onChange={e => setCategoryFilter(e.target.value)}
-                    className="px-3 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="admin-select"
                   >
                     <option value="">Tüm Kategoriler</option>
                     {categories.map(c => (
@@ -296,7 +293,7 @@ export default function AdminDashboard() {
                   <select
                     value={sortKey}
                     onChange={e => setSortKey(e.target.value as SortKey)}
-                    className="px-3 py-2 bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="admin-select"
                   >
                     <option value="date">En Yeni</option>
                     <option value="views">Okunma</option>
@@ -304,74 +301,79 @@ export default function AdminDashboard() {
                   </select>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <div className="relative">
-                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ position: 'relative' }}>
+                    <Search size={15} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                     <input
                       type="text"
                       value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
                       placeholder="Yazı veya yazar ara..."
-                      className="pl-9 pr-4 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 rounded-xl text-xs text-slate-700 dark:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-56"
+                      className="admin-input"
+                      style={{ paddingLeft: '36px', width: '220px' }}
                     />
                   </div>
-                  <Link to="/create" className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-md shadow-indigo-600/10">
-                    <Plus size={15} />
-                    <span>Yeni Yazı</span>
+                  <Link to="/create" className="admin-btn admin-btn-primary">
+                    <Plus size={15} /> Yeni Yazı
                   </Link>
                 </div>
               </div>
 
-              {/* Table list */}
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-slate-100 dark:divide-zinc-800">
-                  <thead className="bg-slate-50/20 dark:bg-zinc-900/10">
+              {/* Table */}
+              <div className="admin-table-wrapper">
+                <table className="admin-table">
+                  <thead>
                     <tr>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Yazı Başlığı</th>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kategori</th>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Yazar</th>
-                      <th className="px-6 py-4 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">Etkileşim</th>
-                      <th className="px-6 py-4 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Yönet</th>
+                      <th>Yazı Başlığı</th>
+                      <th>Kategori</th>
+                      <th>Yazar</th>
+                      <th>İstatistikler</th>
+                      <th style={{ textAlign: 'right' }}>Yönet</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
+                  <tbody>
                     {filteredPosts.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 text-sm">Yazı bulunamadı.</td>
+                        <td colSpan={5} style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '32px' }}>Yazı bulunamadı.</td>
                       </tr>
                     ) : (
                       filteredPosts.map(post => (
-                        <tr key={post.id} className="hover:bg-slate-50/40 dark:hover:bg-zinc-800/20 transition">
-                          <td className="px-6 py-4">
-                            <div className="font-semibold text-slate-800 dark:text-zinc-200 text-sm line-clamp-1">{post.title}</div>
-                            <div className="text-[10px] text-slate-400 mt-1">{new Date(post.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                        <tr key={post.id}>
+                          <td>
+                            <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{post.title}</div>
+                            <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                              {new Date(post.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                            </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="px-2.5 py-1 text-[10px] font-bold rounded-full bg-slate-100 dark:bg-zinc-800/80 text-slate-600 dark:text-zinc-300 border border-slate-200/20">
+                          <td>
+                            <span style={{
+                              padding: '4px 10px', borderRadius: '20px', fontSize: '0.68rem', fontWeight: 700,
+                              background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--card-border)'
+                            }}>
                               {post.category}
                             </span>
                           </td>
-                          <td className="px-6 py-4 text-xs font-medium text-slate-600 dark:text-zinc-300">{post.author}</td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-4 text-xs text-slate-500 dark:text-zinc-400">
-                              <span className="flex items-center gap-1.5"><Eye size={13} /> {post.views}</span>
-                              <span className="flex items-center gap-1.5"><Heart size={13} className="text-rose-500/80" /> {post.likes}</span>
-                              <span className="flex items-center gap-1.5"><MessageSquare size={13} /> {post.comments?.length || 0}</span>
+                          <td style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{post.author}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '16px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Eye size={12} /> {post.views}</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Heart size={12} style={{ color: '#E05353' }} /> {post.likes}</span>
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><MessageSquare size={12} /> {post.comments?.length || 0}</span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 text-right text-sm font-medium">
+                          <td style={{ textAlign: 'right' }}>
                             {deletingId === post.id ? (
-                              <div className="flex gap-1.5 justify-end">
-                                <button onClick={() => handleDelete(post.id)} className="px-2.5 py-1 rounded-lg bg-rose-600 text-white text-xs hover:bg-rose-700">Sil</button>
-                                <button onClick={cancelDelete} className="px-2.5 py-1 rounded-lg bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 text-xs hover:bg-slate-300">İptal</button>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button onClick={() => handleDelete(post.id)} className="admin-btn admin-btn-primary" style={{ padding: '6px 12px', background: 'var(--danger)', fontSize: '0.75rem' }}>Sil</button>
+                                <button onClick={cancelDelete} className="admin-btn admin-btn-ghost" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>İptal</button>
                               </div>
                             ) : (
-                              <div className="flex gap-1 justify-end">
-                                <Link to={`/admin/edit/${post.id}`} className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition" title="Düzenle">
-                                  <Edit size={15} />
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                                <Link to={`/admin/edit/${post.id}`} className="admin-btn admin-btn-ghost" style={{ padding: '6px', borderRadius: '8px' }} title="Düzenle">
+                                  <Edit size={14} />
                                 </Link>
-                                <button onClick={() => confirmDelete(post.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition" title="Sil">
-                                  <Trash2 size={15} />
+                                <button onClick={() => confirmDelete(post.id)} className="admin-btn admin-btn-ghost" style={{ padding: '6px', borderRadius: '8px', color: 'var(--danger)' }} title="Sil">
+                                  <Trash2 size={14} />
                                 </button>
                               </div>
                             )}
@@ -387,32 +389,32 @@ export default function AdminDashboard() {
 
           {/* ======= COMMENTS TAB ======= */}
           {activeTab === 'comments' && (
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm p-6 flex-1 flex flex-col">
-              <h3 className="text-base font-bold text-slate-800 dark:text-zinc-200 mb-5">Yorum Listesi</h3>
+            <div className="admin-card">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)' }}>Kullanıcı Yorumları</h3>
               {comments.length === 0 ? (
-                <div className="text-center py-16 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-slate-400 flex flex-col items-center gap-3 flex-1 justify-center">
-                  <MessageSquare size={36} className="text-slate-300" />
-                  <span className="text-sm">Henüz yazılmış bir yorum bulunmuyor.</span>
+                <div style={{ textAlign: 'center', padding: '48px', border: '1px dashed var(--card-border)', borderRadius: '12px', color: 'var(--text-muted)' }}>
+                  <MessageSquare size={32} style={{ marginBottom: '8px' }} />
+                  <div>Henüz yorum yazılmamış.</div>
                 </div>
               ) : (
-                <div className="divide-y divide-slate-100 dark:divide-zinc-800">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {comments.map(comment => (
-                    <div key={comment.id} className="py-4 flex items-start justify-between gap-4">
+                    <div key={comment.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px', border: '1px solid var(--card-border)', borderRadius: '12px', background: 'rgba(0,0,0,0.005)' }}>
                       <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-slate-850 dark:text-zinc-200 text-sm">{comment.author}</span>
-                          <span className="text-[10px] text-slate-400">{new Date(comment.createdAt).toLocaleDateString('tr-TR')}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{comment.author}</span>
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{new Date(comment.createdAt).toLocaleDateString('tr-TR')}</span>
                         </div>
-                        <p className="text-slate-600 dark:text-zinc-300 text-sm mt-1.5">{comment.content}</p>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: '1.5' }}>{comment.content}</p>
                       </div>
                       {deletingCommentId === comment.id ? (
-                        <div className="flex gap-1.5 shrink-0">
-                          <button onClick={() => handleDeleteComment(comment)} className="px-2.5 py-1 rounded bg-rose-600 text-white text-xs hover:bg-rose-700">Sil</button>
-                          <button onClick={cancelDeleteComment} className="px-2.5 py-1 rounded bg-slate-200 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 text-xs hover:bg-slate-300">İptal</button>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => handleDeleteComment(comment)} className="admin-btn admin-btn-primary" style={{ padding: '6px 12px', background: 'var(--danger)', fontSize: '0.75rem' }}>Sil</button>
+                          <button onClick={cancelDeleteComment} className="admin-btn admin-btn-ghost" style={{ padding: '6px 12px', fontSize: '0.75rem' }}>İptal</button>
                         </div>
                       ) : (
-                        <button onClick={() => confirmDeleteComment(comment.id)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition" title="Yorumu Sil">
-                          <Trash2 size={15} />
+                        <button onClick={() => confirmDeleteComment(comment.id)} className="admin-btn admin-btn-ghost" style={{ padding: '6px', borderRadius: '8px', color: 'var(--danger)' }}>
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>
@@ -424,46 +426,52 @@ export default function AdminDashboard() {
 
           {/* ======= REQUESTS TAB ======= */}
           {activeTab === 'requests' && (
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm p-6 flex-1 flex flex-col">
-              <h3 className="text-base font-bold text-slate-800 dark:text-zinc-200 mb-5">Yetki Talepleri</h3>
+            <div className="admin-card">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)' }}>Yetki Talepleri</h3>
               {requests.length === 0 ? (
-                <div className="text-center py-16 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-slate-400 flex flex-col items-center gap-3 flex-1 justify-center">
-                  <UserCheck size={36} className="text-slate-300" />
-                  <span className="text-sm">Bekleyen yazar/yönetici yetki talebi bulunmamaktadır.</span>
+                <div style={{ textAlign: 'center', padding: '48px', border: '1px dashed var(--card-border)', borderRadius: '12px', color: 'var(--text-muted)' }}>
+                  <UserCheck size={32} style={{ marginBottom: '8px' }} />
+                  <div>Bekleyen yetki talebi bulunmuyor.</div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 gap-3.5">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {requests.map(req => (
-                    <div key={req.id} className="p-4 border border-slate-100 dark:border-zinc-800/60 rounded-xl bg-slate-50/50 dark:bg-zinc-900/30 flex flex-wrap items-center justify-between gap-4 hover:border-indigo-500/20 transition-all duration-200">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center font-bold overflow-hidden shadow-inner shrink-0">
+                    <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', border: '1px solid var(--card-border)', borderRadius: '12px', background: 'rgba(0,0,0,0.005)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{
+                          width: '40px', height: '40px', borderRadius: '50%',
+                          background: 'var(--accent-light)', color: 'var(--accent)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '0.9rem', fontWeight: 700, overflow: 'hidden'
+                        }}>
                           {req.avatar ? (
-                            <img src={req.avatar} alt={req.name} className="w-full h-full object-cover" />
+                            <img src={req.avatar} alt={req.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
                             req.name.charAt(0).toUpperCase()
                           )}
                         </div>
                         <div>
-                          <div className="font-semibold text-slate-800 dark:text-zinc-200 text-sm leading-tight">{req.name}</div>
-                          <div className="text-xs text-slate-400 mt-1">{req.email}</div>
+                          <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{req.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{req.email}</div>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+
+                      <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           onClick={() => handleApprove(req.id)}
                           disabled={actionLoadingId === req.id}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow shadow-emerald-600/10 transition-all"
+                          className="admin-btn admin-btn-primary"
+                          style={{ padding: '8px 16px', fontSize: '0.75rem', background: '#10b981' }}
                         >
-                          <Check size={13} />
-                          {actionLoadingId === req.id ? 'Onaylanıyor...' : 'Onayla'}
+                          <Check size={14} /> {actionLoadingId === req.id ? 'Onaylanıyor...' : 'Onayla'}
                         </button>
                         <button
                           onClick={() => handleReject(req.id)}
                           disabled={actionLoadingId === req.id}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/10 text-slate-600 dark:text-zinc-300 text-xs font-semibold transition-all"
+                          className="admin-btn admin-btn-ghost"
+                          style={{ padding: '8px 16px', fontSize: '0.75rem', color: 'var(--danger)' }}
                         >
-                          <X size={13} />
-                          {actionLoadingId === req.id ? 'Reddediliyor...' : 'Reddet'}
+                          <X size={14} /> {actionLoadingId === req.id ? 'Reddediliyor...' : 'Reddet'}
                         </button>
                       </div>
                     </div>
@@ -475,27 +483,27 @@ export default function AdminDashboard() {
 
           {/* ======= SUBSCRIBERS TAB ======= */}
           {activeTab === 'subscribers' && (
-            <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm p-6 flex-1 flex flex-col">
-              <h3 className="text-base font-bold text-slate-800 dark:text-zinc-200 mb-5">Bülten Abone Listesi</h3>
+            <div className="admin-card">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)' }}>Bülten Aboneleri</h3>
               {subscribers.length === 0 ? (
-                <div className="text-center py-16 border border-dashed border-slate-200 dark:border-zinc-800 rounded-xl text-slate-400 flex flex-col items-center gap-3 flex-1 justify-center">
-                  <Mail size={36} className="text-slate-300" />
-                  <span className="text-sm">Kayıtlı e-bülten abonesi bulunmamaktadır.</span>
+                <div style={{ textAlign: 'center', padding: '48px', border: '1px dashed var(--card-border)', borderRadius: '12px', color: 'var(--text-muted)' }}>
+                  <Mail size={32} style={{ marginBottom: '8px' }} />
+                  <div>Bülten abonesi bulunmuyor.</div>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-100 dark:divide-zinc-800">
-                    <thead className="bg-slate-50/20 dark:bg-zinc-900/10">
+                <div className="admin-table-wrapper">
+                  <table className="admin-table">
+                    <thead>
                       <tr>
-                        <th className="px-6 py-3.5 text-left text-[11px] font-bold text-slate-400 uppercase tracking-wider">E-posta Adresi</th>
-                        <th className="px-6 py-3.5 text-right text-[11px] font-bold text-slate-400 uppercase tracking-wider">Kayıt Tarihi</th>
+                        <th>E-posta Adresi</th>
+                        <th style={{ textAlign: 'right' }}>Kayıt Tarihi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
+                    <tbody>
                       {subscribers.map(sub => (
-                        <tr key={sub.id} className="hover:bg-slate-50/40 dark:hover:bg-zinc-800/20 transition">
-                          <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-zinc-200">{sub.email}</td>
-                          <td className="px-6 py-4 text-right text-xs text-slate-400">
+                        <tr key={sub.id}>
+                          <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{sub.email}</td>
+                          <td style={{ textAlign: 'right', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                             {new Date(sub.createdAt).toLocaleDateString('tr-TR', {
                               day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
@@ -511,55 +519,57 @@ export default function AdminDashboard() {
 
           {/* ======= ANALYTICS TAB ======= */}
           {activeTab === 'analytics' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 items-start">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
               
-              {/* Top 3 posts */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm p-6">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200 mb-5 flex items-center gap-2">
-                  <TrendingUp size={16} className="text-indigo-500" /> En Çok Okunan Yazılar
+              {/* Top posts */}
+              <div className="admin-card">
+                <h3 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
+                  <TrendingUp size={16} style={{ color: 'var(--accent)' }} /> En Çok Okunan Yazılar
                 </h3>
-                <div className="flex flex-col gap-4">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {topPosts.map((post, i) => (
                     <div key={post.id}>
-                      <div className="flex justify-between items-center mb-1">
-                        <div className="flex gap-2.5 items-center">
-                          <span className={`w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold ${
-                            i === 0 ? 'bg-indigo-600' : i === 1 ? 'bg-indigo-500' : 'bg-slate-400'
-                          }`}>{i + 1}</span>
-                          <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300 truncate max-w-xs">{post.title}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px', fontSize: '0.82rem' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 700 }}>
+                          <span style={{
+                            width: '20px', height: '20px', borderRadius: '50%', color: '#fff', fontSize: '0.68rem',
+                            background: i === 0 ? 'var(--accent)' : i === 1 ? 'var(--accent-mid)' : '#94a3b8',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center'
+                          }}>{i + 1}</span>
+                          <span style={{ color: 'var(--text-primary)' }}>{post.title}</span>
                         </div>
-                        <span className="text-[10px] text-slate-500 flex items-center gap-1"><Eye size={12} /> {post.views.toLocaleString('tr-TR')}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{post.views} okuma</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-zinc-800/60 overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${
-                            i === 0 ? 'bg-gradient-to-r from-indigo-500 to-indigo-600' : i === 1 ? 'bg-gradient-to-r from-indigo-400 to-indigo-500' : 'bg-slate-400'
-                          }`}
-                          style={{ width: `${(post.views / maxViews) * 100}%` }}
-                        />
+                      <div style={{ height: '6px', borderRadius: '10px', background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', borderRadius: '10px',
+                          background: i === 0 ? 'var(--accent)' : i === 1 ? 'var(--accent-mid)' : '#94a3b8',
+                          width: `${(post.views / maxViews) * 100}%`
+                        }} />
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Category Distribution */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm p-6">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200 mb-5 flex items-center gap-2">
-                  <BarChart2 size={16} className="text-indigo-500" /> Kategori Dağılımı
+              {/* Category list */}
+              <div className="admin-card">
+                <h3 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
+                  <BarChart2 size={16} style={{ color: 'var(--accent)' }} /> Kategori Dağılımı
                 </h3>
-                <div className="flex flex-col gap-4">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {categoryStats.map(cat => (
                     <div key={cat.name}>
-                      <div className="flex justify-between mb-1">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-zinc-300">{cat.name}</span>
-                        <span className="text-[10px] text-slate-500">{cat.count} yazı · {cat.likes} beğeni</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.82rem', fontWeight: 700 }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{cat.name}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>{cat.count} yazı · {cat.likes} beğeni</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-slate-100 dark:bg-zinc-800/60 overflow-hidden">
-                        <div 
-                          className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500"
-                          style={{ width: `${(cat.count / maxCatCount) * 100}%` }}
-                        />
+                      <div style={{ height: '6px', borderRadius: '10px', background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', borderRadius: '10px',
+                          background: 'linear-gradient(90deg, var(--accent) 0%, var(--accent-mid) 100%)',
+                          width: `${(cat.count / maxCatCount) * 100}%`
+                        }} />
                       </div>
                     </div>
                   ))}
@@ -567,19 +577,20 @@ export default function AdminDashboard() {
               </div>
 
               {/* Like ratio */}
-              <div className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl shadow-sm p-6 lg:col-span-2">
-                <h3 className="text-sm font-bold text-slate-800 dark:text-zinc-200 mb-4 flex items-center gap-2">
-                  <Heart size={16} className="text-rose-500" /> Ortalama Beğeni Oranı
+              <div className="admin-card" style={{ gridColumn: '1 / -1' }}>
+                <h3 style={{ fontSize: '0.92rem', fontWeight: 800, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-secondary)' }}>
+                  <Heart size={16} style={{ color: '#E05353' }} /> Ortalama Beğeni Oranı
                 </h3>
-                <div className="flex items-end gap-3 mb-3">
-                  <div className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400">%{avgLikeRatio}</div>
-                  <div className="text-[10px] text-slate-400 font-medium pb-0.5">görüntülenme başına düşen ortalama beğeni oranı</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '2.5rem', fontWeight: 900, color: 'var(--accent)' }}>%{avgLikeRatio}</div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>görüntülenme başına ortalama beğeni</div>
                 </div>
-                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-zinc-800/60 overflow-hidden">
-                  <div 
-                    className="h-full rounded-full bg-gradient-to-r from-rose-500 to-indigo-500"
-                    style={{ width: `${Math.min(Number(avgLikeRatio) * 2, 100)}%` }}
-                  />
+                <div style={{ height: '6px', borderRadius: '10px', background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: '10px',
+                    background: 'linear-gradient(90deg, #E05353 0%, var(--accent) 100%)',
+                    width: `${Math.min(Number(avgLikeRatio) * 2.5, 100)}%`
+                  }} />
                 </div>
               </div>
 
