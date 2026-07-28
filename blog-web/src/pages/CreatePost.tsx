@@ -28,7 +28,9 @@ export default function CreatePost() {
     return (
       <div className="fade-in-up" style={{ maxWidth: '480px', margin: '80px auto' }}>
         <div className="glass-card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔐</div>
+          <div style={{ display: 'inline-flex', padding: '20px', borderRadius: '50%', background: 'var(--accent-light)', color: 'var(--accent)', marginBottom: '16px' }}>
+            <Lock size={36} />
+          </div>
           <h2 style={{ marginBottom: '12px' }}>Giriş Gerekli</h2>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
             Bu sayfaya erişmek için giriş yapmalısınız.
