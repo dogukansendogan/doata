@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, CheckCircle2, Sparkles } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
+import { subscribeToNewsletter } from '../api/posts';
 
 export default function NewsletterBox() {
   const [email, setEmail] = useState('');
@@ -8,7 +9,7 @@ export default function NewsletterBox() {
   const [loading, setLoading] = useState(false);
   const { addToast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !email.includes('@')) {
       addToast('Lütfen geçerli bir e-posta adresi giriniz', 'error');
@@ -16,11 +17,20 @@ export default function NewsletterBox() {
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const success = await subscribeToNewsletter(email);
+      if (success) {
+        setSubscribed(true);
+        addToast('Tebrikler! Bültene başarıyla abone oldunuz 🎉', 'success');
+      } else {
+        addToast('Bir hata oluştu. Lütfen tekrar deneyin.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      addToast('Abonelik kaydedilemedi.', 'error');
+    } finally {
       setLoading(false);
-      setSubscribed(true);
-      addToast('Tebrikler! Bültene başarıyla abone oldunuz 🎉', 'success');
-    }, 600);
+    }
   };
 
   return (

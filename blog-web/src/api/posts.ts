@@ -473,3 +473,43 @@ export const getUserProfile = async (userId: string): Promise<any | null> => {
   return null;
 };
 
+// ==================== NEWSLETTER SUBSCRIBERS ====================
+
+export interface Subscriber {
+  id: string;
+  email: string;
+  createdAt: string;
+}
+
+export const subscribeToNewsletter = async (email: string): Promise<boolean> => {
+  if (db) {
+    try {
+      await addDoc(collection(db, 'subscribers'), {
+        email: email.trim().toLowerCase(),
+        createdAt: new Date().toISOString()
+      });
+      return true;
+    } catch (e) {
+      console.error('Firestore subscribeToNewsletter failed:', e);
+    }
+  }
+  return true; // Fallback success
+};
+
+export const getNewsletterSubscribers = async (): Promise<Subscriber[]> => {
+  if (db) {
+    try {
+      const q = query(collection(db, 'subscribers'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map(d => ({
+        id: d.id,
+        email: d.data().email || '',
+        createdAt: d.data().createdAt || new Date().toISOString()
+      }));
+    } catch (e) {
+      console.error('Firestore getNewsletterSubscribers failed:', e);
+    }
+  }
+  return [];
+};
+

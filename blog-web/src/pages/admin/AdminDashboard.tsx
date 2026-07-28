@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Edit, Trash2, LayoutDashboard, MessageSquare, BarChart2,
   Plus, Eye, Heart, Clock, Search, ArrowLeft, Check, X,
-  TrendingUp, FileText, Filter, UserCheck
+  TrendingUp, FileText, Filter, UserCheck, Mail
 } from 'lucide-react';
 import type { Post, Comment, DashboardStats } from '../../types';
 import { 
@@ -15,16 +15,19 @@ import {
   getPendingAdminRequests,
   approveAdminRequest,
   rejectAdminRequest,
-  type AdminRequest
+  getNewsletterSubscribers,
+  type AdminRequest,
+  type Subscriber
 } from '../../api/posts';
 
-type ActiveTab = 'posts' | 'comments' | 'analytics' | 'requests';
+type ActiveTab = 'posts' | 'comments' | 'requests' | 'subscribers' | 'analytics';
 type SortKey = 'views' | 'likes' | 'date';
 
 export default function AdminDashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [requests, setRequests] = useState<AdminRequest[]>([]);
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -41,16 +44,18 @@ export default function AdminDashboard() {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [postsData, statsData, commentsData, requestsData] = await Promise.all([
+      const [postsData, statsData, commentsData, requestsData, subscribersData] = await Promise.all([
         getPosts(),
         getDashboardStats(),
         getAllComments(),
         getPendingAdminRequests(),
+        getNewsletterSubscribers(),
       ]);
       setPosts(postsData);
       setStats(statsData);
       setComments(commentsData);
       setRequests(requestsData);
+      setSubscribers(subscribersData);
     } catch (err) {
       console.error('Veriler alınamadı:', err);
     } finally {
@@ -202,6 +207,7 @@ export default function AdminDashboard() {
             { tab: 'posts', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
             { tab: 'comments', label: 'Yorumlar', icon: <MessageSquare size={18} /> },
             { tab: 'requests', label: 'Yetki Talepleri', icon: <UserCheck size={18} />, badge: requests.length },
+            { tab: 'subscribers', label: 'Bülten Aboneleri', icon: <Mail size={18} />, badge: subscribers.length },
             { tab: 'analytics', label: 'Analizler', icon: <BarChart2 size={18} /> },
           ] as { tab: ActiveTab; label: string; icon: React.ReactNode; badge?: number }[]).map((item, idx) => (
             <button
@@ -258,10 +264,10 @@ export default function AdminDashboard() {
         {/* Header */}
         <div style={{ marginBottom: '32px' }}>
           <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-            {activeTab === 'posts' ? 'Yazı Yönetimi' : activeTab === 'comments' ? 'Yorum Yönetimi' : activeTab === 'requests' ? 'Yetki Talepleri' : 'Analizler'}
+            {activeTab === 'posts' ? 'Yazı Yönetimi' : activeTab === 'comments' ? 'Yorum Yönetimi' : activeTab === 'requests' ? 'Yetki Talepleri' : activeTab === 'subscribers' ? 'Bülten Aboneleri' : 'Analizler'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem' }}>
-            {activeTab === 'posts' ? 'Tüm yazılarınızı buradan yönetin' : activeTab === 'comments' ? 'Okuyucu yorumlarını inceleyin ve yönetin' : activeTab === 'requests' ? 'Yazar yetkisi isteyen kullanıcıların taleplerini onaylayın veya reddedin' : 'Sitenizin performans analizleri'}
+            {activeTab === 'posts' ? 'Tüm yazılarınızı buradan yönetin' : activeTab === 'comments' ? 'Okuyucu yorumlarını inceleyin ve yönetin' : activeTab === 'requests' ? 'Yazar yetkisi isteyen kullanıcıların taleplerini onaylayın veya reddedin' : activeTab === 'subscribers' ? 'Bültene abone olmuş kullanıcıların e-posta listesi' : 'Sitenizin performans analizleri'}
           </p>
         </div>
 
@@ -294,7 +300,7 @@ export default function AdminDashboard() {
 
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', borderBottom: '1px solid var(--card-border)', paddingBottom: '0' }}>
-          {(['posts', 'comments', 'requests', 'analytics'] as ActiveTab[]).map(tab => (
+          {(['posts', 'comments', 'requests', 'subscribers', 'analytics'] as ActiveTab[]).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -308,7 +314,7 @@ export default function AdminDashboard() {
                 marginBottom: '-1px', transition: 'all 0.2s',
               }}
             >
-              {tab === 'posts' ? 'Yazılar' : tab === 'comments' ? 'Yorumlar' : tab === 'requests' ? 'Yetki Talepleri' : 'Analizler'}
+              {tab === 'posts' ? 'Yazılar' : tab === 'comments' ? 'Yorumlar' : tab === 'requests' ? 'Yetki Talepleri' : tab === 'subscribers' ? 'Aboneler' : 'Analizler'}
             </button>
           ))}
         </div>
@@ -704,6 +710,50 @@ export default function AdminDashboard() {
                         {actionLoadingId === req.id ? 'Reddediliyor...' : 'Reddet'}
                       </button>
                     </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ======= SUBSCRIBERS TAB ======= */}
+        {activeTab === 'subscribers' && (
+          <div className="glass-card-static" style={{ padding: '24px' }}>
+            <h3 style={{ marginBottom: '20px', fontSize: '1rem', fontWeight: 700 }}>E-Bülten Abone Listesi</h3>
+            {subscribers.length === 0 ? (
+              <div style={{
+                textAlign: 'center', padding: '40px 20px',
+                color: 'var(--text-muted)', fontSize: '0.9rem',
+                border: '1px dashed var(--card-border)', borderRadius: 'var(--radius-md)',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px'
+              }}>
+                <Mail size={36} style={{ color: 'var(--text-muted)' }} />
+                <span>Kayıtlı e-bülten abonesi bulunmamaktadır.</span>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 200px',
+                  padding: '12px 16px', borderBottom: '2px solid var(--card-border)',
+                  fontWeight: 700, fontSize: '0.85rem', color: 'var(--text-secondary)'
+                }}>
+                  <span>E-posta Adresi</span>
+                  <span>Kayıt Tarihi</span>
+                </div>
+                {subscribers.map(sub => (
+                  <div key={sub.id} style={{
+                    display: 'grid', gridTemplateColumns: '1fr 200px',
+                    padding: '14px 16px', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-sm)',
+                    background: 'var(--bg-color)', fontSize: '0.9rem', color: 'var(--text-primary)',
+                    alignItems: 'center', gap: '12px'
+                  }}>
+                    <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sub.email}</span>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      {new Date(sub.createdAt).toLocaleDateString('tr-TR', {
+                        day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+                      })}
+                    </span>
                   </div>
                 ))}
               </div>
