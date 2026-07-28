@@ -13,24 +13,40 @@ interface ProtectedRouteProps {
  * Giriş yapılmamışsa /login'e, admin değilse ana sayfaya yönlendirir.
  */
 export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { user, isAdmin } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
+
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        minHeight: '60vh', 
+        flexDirection: 'column', 
+        gap: '16px' 
+      }}>
+        <div style={{ 
+          width: '40px', 
+          height: '40px', 
+          border: '3px solid var(--accent-mid)', 
+          borderTopColor: 'var(--accent)', 
+          borderRadius: '50%', 
+          animation: 'spin 0.8s linear infinite' 
+        }} />
+        <span style={{ color: 'var(--text-secondary)' }}>Yükleniyor...</span>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
-    return (
-      <div className="access-denied-page fade-in-up">
-        <div className="access-denied-card glass-card">
-          <div className="access-denied-icon">🔒</div>
-          <h1>Erişim Reddedildi</h1>
-          <p>Bu sayfaya erişim yetkiniz bulunmuyor.</p>
-          <p className="access-denied-sub">Sadece yöneticiler bu sayfaya erişebilir.</p>
-          <Navigate to="/" replace />
-        </div>
-      </div>
-    );
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;

@@ -1,11 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,500&family=Playfair+Display:wght@700;800;900&display=swap');
+@import "tailwindcss";
+
 /* ================================================
    DOATA BLOG — DESIGN SYSTEM
    Inspired by modern editorial magazines
    ================================================ */
-
-/* FONTS */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,500&family=Playfair+Display:wght@700;800;900&display=swap');
-
 /* RESET */
 *, *::before, *::after {
   margin: 0;

@@ -129,10 +129,16 @@ export default function Header() {
 
               {/* Admin: Write button */}
               {isAdmin && (
-                <Link to="/create" className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-                  <PenSquare size={16} />
-                  <span className="hide-on-mobile">Yeni Yazı</span>
-                </Link>
+                <>
+                  <Link to="/admin" className="hide-on-mobile btn-ghost" style={{ padding: '8px 14px', fontSize: '0.85rem', color: 'var(--accent)', borderColor: 'var(--accent-mid)' }}>
+                    <LayoutDashboard size={16} />
+                    <span>Admin Paneli</span>
+                  </Link>
+                  <Link to="/create" className="btn-primary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+                    <PenSquare size={16} />
+                    <span className="hide-on-mobile">Yeni Yazı</span>
+                  </Link>
+                </>
               )}
 
               {/* User dropdown */}
