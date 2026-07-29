@@ -216,9 +216,11 @@ export default function PostDetail() {
 
                 {/* Medium Claps & Dev.to Emoji Reactions */}
                 <ReactionSystem
+                  postId={post.id}
                   initialLikes={post.likes}
                   isLiked={post.isLiked}
                   onLikeToggle={handleLike}
+                  initialReactions={post.reactions}
                 />
 
                 {/* Tags */}

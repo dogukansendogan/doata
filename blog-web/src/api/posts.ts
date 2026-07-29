@@ -46,7 +46,8 @@ const mapDocToPost = (id: string, data: DocumentData): Post => {
     likes: data.likes || 0,
     isLiked: data.isLiked || false,
     isBookmarked: data.isBookmarked || false,
-    comments: data.comments || []
+    comments: data.comments || [],
+    reactions: data.reactions || { love: 0, unicorn: 0, mindblown: 0, idea: 0 }
   };
 };
 
@@ -88,7 +89,7 @@ export const getPostById = async (id: string): Promise<Post | null> => {
   return post ? { ...post } : null;
 };
 
-export const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'readingTime' | 'views' | 'likes' | 'isLiked' | 'isBookmarked' | 'comments'>): Promise<Post> => {
+export const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'readingTime' | 'views' | 'likes' | 'isLiked' | 'isBookmarked' | 'comments' | 'reactions'>): Promise<Post> => {
   const wordsPerMinute = 200;
   const wordCount = postData.content.split(/\s+/).length;
   const readingTime = Math.max(1, Math.ceil(wordCount / wordsPerMinute));
@@ -101,7 +102,8 @@ export const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'read
     likes: 0,
     isLiked: false,
     isBookmarked: false,
-    comments: []
+    comments: [],
+    reactions: { love: 0, unicorn: 0, mindblown: 0, idea: 0 }
   };
 
   if (db) {
@@ -576,5 +578,41 @@ export const getNewsletterSubscribers = async (): Promise<Subscriber[]> => {
     }
   }
   return [];
+};
+
+export const reactToPost = async (id: string, reactionType: string, increment: boolean): Promise<Record<string, number> | null> => {
+  if (db) {
+    try {
+      const postRef = doc(db, 'posts', id);
+      const docSnap = await getDoc(postRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const currentReactions = (data.reactions || { love: 0, unicorn: 0, mindblown: 0, idea: 0 }) as Record<string, number>;
+        const change = increment ? 1 : -1;
+        const nextCount = Math.max(0, (currentReactions[reactionType] || 0) + change);
+        const updatedReactions = {
+          ...currentReactions,
+          [reactionType]: nextCount
+        };
+        await updateDoc(postRef, { reactions: updatedReactions });
+        return updatedReactions;
+      }
+    } catch (e) {
+      console.error('Firestore reactToPost failed:', e);
+    }
+  }
+  
+  // Local fallback
+  const post = mockPosts.find(p => p.id === id);
+  if (post) {
+    if (!post.reactions) {
+      post.reactions = { love: 0, unicorn: 0, mindblown: 0, idea: 0 };
+    }
+    const rMap = post.reactions as Record<string, number>;
+    const change = increment ? 1 : -1;
+    rMap[reactionType] = Math.max(0, (rMap[reactionType] || 0) + change);
+    return post.reactions;
+  }
+  return null;
 };
 

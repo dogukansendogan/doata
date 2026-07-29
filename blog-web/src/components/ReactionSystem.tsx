@@ -1,12 +1,20 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Heart, Award, Brain, Lightbulb, ThumbsUp } from 'lucide-react';
+import { reactToPost } from '../api/posts';
 
 interface ReactionSystemProps {
+  postId: string;
   initialLikes: number;
   isLiked: boolean;
   onLikeToggle: () => void;
+  initialReactions?: {
+    love: number;
+    unicorn: number;
+    mindblown: number;
+    idea: number;
+  };
 }
 
 interface SvgReaction {
@@ -18,7 +26,7 @@ interface SvgReaction {
   color: string;
 }
 
-export default function ReactionSystem({ initialLikes, isLiked, onLikeToggle }: ReactionSystemProps) {
+export default function ReactionSystem({ postId, initialLikes, isLiked, onLikeToggle, initialReactions }: ReactionSystemProps) {
   const { user } = useAuth();
   const { addToast } = useToast();
 
@@ -28,12 +36,22 @@ export default function ReactionSystem({ initialLikes, isLiked, onLikeToggle }: 
   const [floatingCounts, setFloatingCounts] = useState<{ id: number; text: string }[]>([]);
 
   // SVG Reactions state
-  const [reactions, setReactions] = useState<SvgReaction[]>([
-    { id: 'love', icon: Heart, label: 'Harika', count: Math.floor(initialLikes * 0.6) + 3, userReacted: isLiked, color: '#ef4444' },
-    { id: 'unicorn', icon: Award, label: 'Efsane', count: Math.floor(initialLikes * 0.3) + 2, userReacted: false, color: '#a855f7' },
-    { id: 'mindblown', icon: Brain, label: 'Zihin Açıcı', count: Math.floor(initialLikes * 0.4) + 1, userReacted: false, color: '#f59e0b' },
-    { id: 'idea', icon: Lightbulb, label: 'İlham Verici', count: Math.floor(initialLikes * 0.5) + 4, userReacted: false, color: '#10b981' },
-  ]);
+  const [reactions, setReactions] = useState<SvgReaction[]>([]);
+
+  useEffect(() => {
+    const rx = initialReactions || { love: 0, unicorn: 0, mindblown: 0, idea: 0 };
+    setReactions([
+      { id: 'love', icon: Heart, label: 'Harika', count: rx.love || 0, userReacted: isLiked, color: '#ef4444' },
+      { id: 'unicorn', icon: Award, label: 'Efsane', count: rx.unicorn || 0, userReacted: false, color: '#a855f7' },
+      { id: 'mindblown', icon: Brain, label: 'Zihin Açıcı', count: rx.mindblown || 0, userReacted: false, color: '#f59e0b' },
+      { id: 'idea', icon: Lightbulb, label: 'İlham Verici', count: rx.idea || 0, userReacted: false, color: '#10b981' },
+    ]);
+  }, [initialReactions, isLiked]);
+
+  // Sync clap count if parent likes change
+  useEffect(() => {
+    setClaps(initialLikes);
+  }, [initialLikes]);
 
   const handleClap = () => {
     if (!user) {
@@ -62,26 +80,61 @@ export default function ReactionSystem({ initialLikes, isLiked, onLikeToggle }: 
     }, 1000);
   };
 
-  const handleEmojiClick = (id: string) => {
+  const handleEmojiClick = async (id: string) => {
     if (!user) {
       addToast('Tepki vermek için lütfen giriş yapın', 'info');
       return;
     }
 
+    const target = reactions.find(r => r.id === id);
+    if (!target) return;
+    const nextReactedState = !target.userReacted;
+
+    // Optimistic UI Update
     setReactions(prev =>
       prev.map(r => {
         if (r.id === id) {
-          const nextState = !r.userReacted;
-          if (nextState) addToast(`"${r.label}" tepkiniz eklendi!`, 'success');
           return {
             ...r,
-            userReacted: nextState,
-            count: nextState ? r.count + 1 : Math.max(0, r.count - 1),
+            userReacted: nextReactedState,
+            count: nextReactedState ? r.count + 1 : Math.max(0, r.count - 1),
           };
         }
         return r;
       })
     );
+
+    try {
+      const updated = await reactToPost(postId, id, nextReactedState);
+      if (updated) {
+        if (nextReactedState) {
+          addToast(`"${target.label}" tepkiniz eklendi!`, 'success');
+        }
+        // Sync exact database counts
+        setReactions(prev =>
+          prev.map(r => ({
+            ...r,
+            count: updated[r.id] !== undefined ? updated[r.id] : r.count
+          }))
+        );
+      }
+    } catch (err) {
+      console.error(err);
+      // Revert state on error
+      setReactions(prev =>
+        prev.map(r => {
+          if (r.id === id) {
+            return {
+              ...r,
+              userReacted: !nextReactedState,
+              count: !nextReactedState ? r.count + 1 : Math.max(0, r.count - 1),
+            };
+          }
+          return r;
+        })
+      );
+      addToast('Tepki kaydedilemedi.', 'error');
+    }
   };
 
   return (

@@ -16,6 +16,12 @@ export interface Post {
   isLiked: boolean;
   isBookmarked: boolean;
   comments: Comment[];
+  reactions?: {
+    love: number;
+    unicorn: number;
+    mindblown: number;
+    idea: number;
+  };
 }
 
 // ============ COMMENT ============
