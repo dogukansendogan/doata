@@ -195,7 +195,7 @@ export default function AdminDashboard() {
           {([
             { tab: 'posts', label: 'Yazı Yönetimi', icon: <FileText size={18} /> },
             { tab: 'comments', label: 'Yorumlar', icon: <MessageSquare size={18} /> },
-            { tab: 'requests', label: 'Yetki Talepleri', icon: <UserCheck size={18} />, badge: requests.length },
+            { tab: 'requests', label: 'Yazar Onayları', icon: <UserCheck size={18} />, badge: requests.length },
             { tab: 'subscribers', label: 'Bülten Aboneleri', icon: <Mail size={18} />, badge: subscribers.length },
             { tab: 'analytics', label: 'Analizler', icon: <BarChart2 size={18} /> },
           ] as { tab: ActiveTab; label: string; icon: React.ReactNode; badge?: number }[]).map((item, idx) => {
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
             <span>YÖNETİM</span>
             <span style={{ color: 'var(--card-border)' }}>/</span>
             <span style={{ color: 'var(--accent)' }}>
-              {activeTab === 'posts' ? 'YAZILAR' : activeTab === 'comments' ? 'YORUMLAR' : activeTab === 'requests' ? 'YETKİLER' : activeTab === 'subscribers' ? 'BÜLTEN' : 'ANALİZLER'}
+              {activeTab === 'posts' ? 'YAZILAR' : activeTab === 'comments' ? 'YORUMLAR' : activeTab === 'requests' ? 'YAZAR ONAYLARI' : activeTab === 'subscribers' ? 'BÜLTEN' : 'ANALİZLER'}
             </span>
           </div>
           
@@ -427,11 +427,11 @@ export default function AdminDashboard() {
           {/* ======= REQUESTS TAB ======= */}
           {activeTab === 'requests' && (
             <div className="admin-card">
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)' }}>Yetki Talepleri</h3>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 800, marginBottom: '20px', color: 'var(--text-primary)' }}>Bekleyen Yazar Yetki Talepleri</h3>
               {requests.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '48px', border: '1px dashed var(--card-border)', borderRadius: '12px', color: 'var(--text-muted)' }}>
                   <UserCheck size={32} style={{ marginBottom: '8px' }} />
-                  <div>Bekleyen yetki talebi bulunmuyor.</div>
+                  <div>Bekleyen yazar yetki talebi bulunmuyor.</div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

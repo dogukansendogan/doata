@@ -6,6 +6,7 @@ import {
   getDoc, 
   addDoc, 
   updateDoc, 
+  setDoc,
   deleteDoc, 
   doc, 
   query, 
@@ -395,7 +396,7 @@ export const requestAdminRole = async (userId: string): Promise<boolean> => {
   if (db) {
     try {
       const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, { adminRequestStatus: 'pending' });
+      await setDoc(userRef, { adminRequestStatus: 'pending' }, { merge: true });
       return true;
     } catch (e) {
       console.error('Firestore requestAdminRole failed:', e);
@@ -431,10 +432,10 @@ export const approveAdminRequest = async (userId: string): Promise<boolean> => {
   if (db) {
     try {
       const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, { 
+      await setDoc(userRef, { 
         role: 'admin', 
         adminRequestStatus: 'approved' 
-      });
+      }, { merge: true });
       return true;
     } catch (e) {
       console.error('Firestore approveAdminRequest failed:', e);
@@ -447,9 +448,9 @@ export const rejectAdminRequest = async (userId: string): Promise<boolean> => {
   if (db) {
     try {
       const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, { 
+      await setDoc(userRef, { 
         adminRequestStatus: 'rejected' 
-      });
+      }, { merge: true });
       return true;
     } catch (e) {
       console.error('Firestore rejectAdminRequest failed:', e);
