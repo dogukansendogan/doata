@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { createPost } from '../api/posts';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { PenSquare, Image, Tag, FolderOpen, FileText, Lock } from 'lucide-react';
+import { PenSquare, Image, Tag, FolderOpen, FileText, Lock, Upload } from 'lucide-react';
 
 import { sanitizeString } from '../security/sanitizer';
 import { validateCsrfToken } from '../security/csrfGuard';
@@ -22,6 +22,21 @@ export default function CreatePost() {
   const [coverImage, setCoverImage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        addToast('Dosya boyutu 2MB\'dan büyük olamaz.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   // Not logged in
   if (!user) {
@@ -207,27 +222,59 @@ export default function CreatePost() {
           <div className="form-group">
             <label className="form-label" htmlFor="coverImage">
               <Image size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
-              Kapak Görseli URL (opsiyonel)
+              Kapak Görseli
             </label>
-            <input
-              id="coverImage"
-              type="url"
-              className="form-input"
-              value={coverImage}
-              onChange={e => setCoverImage(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-            />
-            {coverImage && (
-              <img
-                src={coverImage}
-                alt="Preview"
-                style={{
-                  marginTop: '10px', width: '100%', maxHeight: '200px',
-                  objectFit: 'cover', borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--card-border)',
-                }}
-                onError={e => (e.currentTarget.style.display = 'none')}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input
+                id="coverImage"
+                type="text"
+                className="form-input"
+                value={coverImage}
+                onChange={e => setCoverImage(e.target.value)}
+                placeholder="Görsel URL'si yapıştırın veya yerel dosya seçin..."
+                style={{ flex: 1 }}
               />
+              <input
+                id="coverImageFile"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => document.getElementById('coverImageFile')?.click()}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', padding: '10px 16px' }}
+              >
+                <Upload size={14} /> Dosya Seç
+              </button>
+            </div>
+            {coverImage && (
+              <div style={{ position: 'relative', marginTop: '10px' }}>
+                <img
+                  src={coverImage}
+                  alt="Preview"
+                  style={{
+                    width: '100%', maxHeight: '200px',
+                    objectFit: 'cover', borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--card-border)',
+                  }}
+                  onError={e => (e.currentTarget.style.display = 'none')}
+                />
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setCoverImage('')}
+                  style={{
+                    position: 'absolute', top: '10px', right: '10px',
+                    padding: '4px 10px', fontSize: '0.75rem', background: 'rgba(0,0,0,0.6)',
+                    color: '#fff', border: 'none', borderRadius: 'var(--radius-sm)'
+                  }}
+                >
+                  Kaldır
+                </button>
+              </div>
             )}
           </div>
 

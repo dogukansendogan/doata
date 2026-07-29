@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Eye, Image } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Image, Upload } from 'lucide-react';
 import { getPostById, updatePost } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
 
@@ -20,6 +20,22 @@ export default function EditPost() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        addToast('Dosya boyutu 2MB\'dan büyük olamaz.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImage(reader.result as string);
+        setImageError(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -211,16 +227,33 @@ export default function EditPost() {
               </div>
 
               <div className="form-group">
-                <label className="form-label" htmlFor="coverImage">Görsel URL</label>
-                <input
-                  id="coverImage"
-                  className="form-input"
-                  type="url"
-                  value={coverImage}
-                  onChange={e => { setCoverImage(e.target.value); setImageError(false); }}
-                  placeholder="https://images.unsplash.com/..."
-                  style={{ fontSize: '0.82rem' }}
-                />
+                <label className="form-label" htmlFor="coverImage">Görsel URL veya Yerel Dosya</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    id="coverImage"
+                    className="form-input"
+                    type="text"
+                    value={coverImage}
+                    onChange={e => { setCoverImage(e.target.value); setImageError(false); }}
+                    placeholder="Görsel URL'si veya yerel dosya seçin..."
+                    style={{ fontSize: '0.82rem', flex: 1 }}
+                  />
+                  <input
+                    id="coverImageFile"
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={handleFileChange}
+                  />
+                  <button
+                    type="button"
+                    className="btn-ghost"
+                    onClick={() => document.getElementById('coverImageFile')?.click()}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', padding: '8px 12px', fontSize: '0.8rem' }}
+                  >
+                    <Upload size={13} /> Seç
+                  </button>
+                </div>
               </div>
             </div>
 
