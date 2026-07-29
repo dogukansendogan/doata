@@ -71,9 +71,9 @@ export default function Profile() {
       } else {
         addToast('Talep gönderilirken bir hata oluştu.', 'error');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      addToast('Talep gönderilirken hata oluştu.', 'error');
+      addToast(`Hata: ${e?.message || e?.code || String(e)}`, 'error');
     } finally {
       setRequestLoading(false);
     }
