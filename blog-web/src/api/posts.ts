@@ -402,6 +402,16 @@ export const requestAdminRole = async (userId: string): Promise<boolean> => {
       console.error('Firestore requestAdminRole failed:', e);
     }
   }
+  // Local storage fallback
+  try {
+    const key = `mock_profile_${userId}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    data.adminRequestStatus = 'pending';
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Local fallback requestAdminRole failed:', err);
+  }
   return false;
 };
 
@@ -425,6 +435,29 @@ export const getPendingAdminRequests = async (): Promise<AdminRequest[]> => {
       console.error('Firestore getPendingAdminRequests failed:', e);
     }
   }
+  // Local storage fallback for listing requests in dev dashboard
+  try {
+    const list: AdminRequest[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i) || '';
+      if (key.startsWith('mock_profile_')) {
+        const data = JSON.parse(localStorage.getItem(key) || '{}');
+        if (data.adminRequestStatus === 'pending') {
+          list.push({
+            id: key.replace('mock_profile_', ''),
+            name: data.name || 'Misafir Kullanıcı',
+            email: data.email || 'guest@example.com',
+            avatar: data.avatar || '',
+            adminRequestStatus: data.adminRequestStatus,
+            role: data.role || 'user'
+          });
+        }
+      }
+    }
+    return list;
+  } catch (err) {
+    console.error('Local fallback getPendingAdminRequests failed:', err);
+  }
   return [];
 };
 
@@ -441,6 +474,17 @@ export const approveAdminRequest = async (userId: string): Promise<boolean> => {
       console.error('Firestore approveAdminRequest failed:', e);
     }
   }
+  // Local storage fallback
+  try {
+    const key = `mock_profile_${userId}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    data.role = 'admin';
+    data.adminRequestStatus = 'approved';
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Local fallback approveAdminRequest failed:', err);
+  }
   return false;
 };
 
@@ -456,6 +500,16 @@ export const rejectAdminRequest = async (userId: string): Promise<boolean> => {
       console.error('Firestore rejectAdminRequest failed:', e);
     }
   }
+  // Local storage fallback
+  try {
+    const key = `mock_profile_${userId}`;
+    const data = JSON.parse(localStorage.getItem(key) || '{}');
+    data.adminRequestStatus = 'rejected';
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (err) {
+    console.error('Local fallback rejectAdminRequest failed:', err);
+  }
   return false;
 };
 
@@ -470,6 +524,16 @@ export const getUserProfile = async (userId: string): Promise<any | null> => {
     } catch (e) {
       console.error('Firestore getUserProfile failed:', e);
     }
+  }
+  // Local storage fallback
+  try {
+    const key = `mock_profile_${userId}`;
+    const data = localStorage.getItem(key);
+    if (data) {
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Local fallback getUserProfile failed:', err);
   }
   return null;
 };
