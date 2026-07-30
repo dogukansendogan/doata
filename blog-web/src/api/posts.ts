@@ -1,5 +1,5 @@
 import type { Post, Comment, Category, DashboardStats } from '../types';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { 
   collection, 
   getDocs, 
@@ -28,6 +28,46 @@ const CATEGORIES: Category[] = [
 
 let mockPosts: Post[] = [];
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const checkUserLiked = async (postId: string, userId: string): Promise<boolean> => {
+  if (!db) return false;
+  try {
+    const docSnap = await getDoc(doc(db, 'users', userId, 'likes', postId));
+    return docSnap.exists();
+  } catch {
+    return false;
+  }
+};
+
+const checkUserBookmarked = async (postId: string, userId: string): Promise<boolean> => {
+  if (!db) return false;
+  try {
+    const docSnap = await getDoc(doc(db, 'users', userId, 'bookmarks', postId));
+    return docSnap.exists();
+  } catch {
+    return false;
+  }
+};
+
+const getUserLikedPostIds = async (userId: string): Promise<Set<string>> => {
+  const ids = new Set<string>();
+  if (!db) return ids;
+  try {
+    const snap = await getDocs(collection(db, 'users', userId, 'likes'));
+    snap.docs.forEach(d => ids.add(d.id));
+  } catch {}
+  return ids;
+};
+
+const getUserBookmarkedPostIds = async (userId: string): Promise<Set<string>> => {
+  const ids = new Set<string>();
+  if (!db) return ids;
+  try {
+    const snap = await getDocs(collection(db, 'users', userId, 'bookmarks'));
+    snap.docs.forEach(d => ids.add(d.id));
+  } catch {}
+  return ids;
+};
 
 const mapDocToPost = (id: string, data: DocumentData): Post => {
   return {
@@ -58,7 +98,20 @@ export const getPosts = async (): Promise<Post[]> => {
     try {
       const q = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      const posts = snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      
+      const currentUser = auth?.currentUser;
+      if (currentUser) {
+        const [likedIds, bookmarkedIds] = await Promise.all([
+          getUserLikedPostIds(currentUser.uid),
+          getUserBookmarkedPostIds(currentUser.uid)
+        ]);
+        posts.forEach(p => {
+          p.isLiked = likedIds.has(p.id);
+          p.isBookmarked = bookmarkedIds.has(p.id);
+        });
+      }
+      return posts;
     } catch (e) {
       console.error('Firestore getPosts failed, using fallback:', e);
     }
@@ -76,7 +129,18 @@ export const getPostById = async (id: string): Promise<Post | null> => {
         const currentData = snapshot.data();
         const updatedViews = (currentData.views || 0) + 1;
         await updateDoc(postRef, { views: updatedViews });
-        return mapDocToPost(snapshot.id, { ...currentData, views: updatedViews });
+        const post = mapDocToPost(snapshot.id, { ...currentData, views: updatedViews });
+        
+        const currentUser = auth?.currentUser;
+        if (currentUser) {
+          const [liked, bookmarked] = await Promise.all([
+            checkUserLiked(post.id, currentUser.uid),
+            checkUserBookmarked(post.id, currentUser.uid)
+          ]);
+          post.isLiked = liked;
+          post.isBookmarked = bookmarked;
+        }
+        return post;
       }
       return null;
     } catch (e) {
@@ -188,7 +252,20 @@ export const getPostsByCategory = async (category: string): Promise<Post[]> => {
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      const posts = snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      
+      const currentUser = auth?.currentUser;
+      if (currentUser) {
+        const [likedIds, bookmarkedIds] = await Promise.all([
+          getUserLikedPostIds(currentUser.uid),
+          getUserBookmarkedPostIds(currentUser.uid)
+        ]);
+        posts.forEach(p => {
+          p.isLiked = likedIds.has(p.id);
+          p.isBookmarked = bookmarkedIds.has(p.id);
+        });
+      }
+      return posts;
     } catch (e) {
       console.error('Firestore getPostsByCategory failed:', e);
     }
@@ -205,7 +282,20 @@ export const getPostsByTag = async (tag: string): Promise<Post[]> => {
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      const posts = snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      
+      const currentUser = auth?.currentUser;
+      if (currentUser) {
+        const [likedIds, bookmarkedIds] = await Promise.all([
+          getUserLikedPostIds(currentUser.uid),
+          getUserBookmarkedPostIds(currentUser.uid)
+        ]);
+        posts.forEach(p => {
+          p.isLiked = likedIds.has(p.id);
+          p.isBookmarked = bookmarkedIds.has(p.id);
+        });
+      }
+      return posts;
     } catch (e) {
       console.error('Firestore getPostsByTag failed:', e);
     }
@@ -222,7 +312,20 @@ export const getPostsByAuthor = async (author: string): Promise<Post[]> => {
         orderBy('createdAt', 'desc')
       );
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      const posts = snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      
+      const currentUser = auth?.currentUser;
+      if (currentUser) {
+        const [likedIds, bookmarkedIds] = await Promise.all([
+          getUserLikedPostIds(currentUser.uid),
+          getUserBookmarkedPostIds(currentUser.uid)
+        ]);
+        posts.forEach(p => {
+          p.isLiked = likedIds.has(p.id);
+          p.isBookmarked = bookmarkedIds.has(p.id);
+        });
+      }
+      return posts;
     } catch (e) {
       console.error('Firestore getPostsByAuthor failed:', e);
     }
@@ -235,7 +338,20 @@ export const getPopularPosts = async (limitVal = 5): Promise<Post[]> => {
     try {
       const q = query(collection(db, 'posts'), orderBy('views', 'desc'), limit(limitVal));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      const posts = snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      
+      const currentUser = auth?.currentUser;
+      if (currentUser) {
+        const [likedIds, bookmarkedIds] = await Promise.all([
+          getUserLikedPostIds(currentUser.uid),
+          getUserBookmarkedPostIds(currentUser.uid)
+        ]);
+        posts.forEach(p => {
+          p.isLiked = likedIds.has(p.id);
+          p.isBookmarked = bookmarkedIds.has(p.id);
+        });
+      }
+      return posts;
     } catch (e) {
       console.error('Firestore getPopularPosts failed:', e);
     }
@@ -254,15 +370,29 @@ export const getAllTags = async (): Promise<string[]> => {
 // ==================== LIKES & BOOKMARKS ====================
 
 export const toggleLike = async (id: string): Promise<{ likes: number; isLiked: boolean } | null> => {
-  if (db) {
+  const currentUser = auth?.currentUser;
+  if (db && currentUser) {
     try {
       const postRef = doc(db, 'posts', id);
-      const snapshot = await getDoc(postRef);
-      if (snapshot.exists()) {
-        const data = snapshot.data();
-        const nextLiked = !data.isLiked;
-        const nextLikes = (data.likes || 0) + (nextLiked ? 1 : -1);
-        await updateDoc(postRef, { isLiked: nextLiked, likes: nextLikes });
+      const userLikeRef = doc(db, 'users', currentUser.uid, 'likes', id);
+      
+      const [postSnap, likeSnap] = await Promise.all([
+        getDoc(postRef),
+        getDoc(userLikeRef)
+      ]);
+      
+      if (postSnap.exists()) {
+        const postData = postSnap.data();
+        const nextLiked = !likeSnap.exists();
+        const nextLikes = Math.max(0, (postData.likes || 0) + (nextLiked ? 1 : -1));
+        
+        await Promise.all([
+          updateDoc(postRef, { likes: nextLikes }),
+          nextLiked 
+            ? setDoc(userLikeRef, { likedAt: new Date().toISOString() })
+            : deleteDoc(userLikeRef)
+        ]);
+        
         return { likes: nextLikes, isLiked: nextLiked };
       }
     } catch (e) {
@@ -277,15 +407,19 @@ export const toggleLike = async (id: string): Promise<{ likes: number; isLiked: 
 };
 
 export const toggleBookmark = async (id: string): Promise<boolean | null> => {
-  if (db) {
+  const currentUser = auth?.currentUser;
+  if (db && currentUser) {
     try {
-      const postRef = doc(db, 'posts', id);
-      const snapshot = await getDoc(postRef);
-      if (snapshot.exists()) {
-        const nextBookmarked = !snapshot.data().isBookmarked;
-        await updateDoc(postRef, { isBookmarked: nextBookmarked });
-        return nextBookmarked;
+      const userBookmarkRef = doc(db, 'users', currentUser.uid, 'bookmarks', id);
+      const bookmarkSnap = await getDoc(userBookmarkRef);
+      const nextBookmarked = !bookmarkSnap.exists();
+      
+      if (nextBookmarked) {
+        await setDoc(userBookmarkRef, { bookmarkedAt: new Date().toISOString() });
+      } else {
+        await deleteDoc(userBookmarkRef);
       }
+      return nextBookmarked;
     } catch (e) {
       console.error('Firestore toggleBookmark failed:', e);
     }
@@ -297,11 +431,23 @@ export const toggleBookmark = async (id: string): Promise<boolean | null> => {
 };
 
 export const getBookmarkedPosts = async (): Promise<Post[]> => {
-  if (db) {
+  const currentUser = auth?.currentUser;
+  if (db && currentUser) {
     try {
-      const q = query(collection(db, 'posts'), where('isBookmarked', '==', true));
+      const bookmarkedIds = await getUserBookmarkedPostIds(currentUser.uid);
+      if (bookmarkedIds.size === 0) return [];
+      
+      const q = query(collection(db, 'posts'));
       const snapshot = await getDocs(q);
-      return snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      const allPosts = snapshot.docs.map(d => mapDocToPost(d.id, d.data()));
+      
+      const likedIds = await getUserLikedPostIds(currentUser.uid);
+      const filtered = allPosts.filter(p => bookmarkedIds.has(p.id));
+      filtered.forEach(p => {
+        p.isLiked = likedIds.has(p.id);
+        p.isBookmarked = true;
+      });
+      return filtered;
     } catch (e) {
       console.error('Firestore getBookmarkedPosts failed:', e);
     }
