@@ -1,16 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import rehypeRaw from 'rehype-raw';
-import { createPost } from '../api/posts';
+import { createPost, getCategories } from '../api/posts';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { PenSquare, Image, Tag, FolderOpen, FileText, Lock, Upload } from 'lucide-react';
 
 import { sanitizeString } from '../security/sanitizer';
 import { validateCsrfToken } from '../security/csrfGuard';
-
-const CATEGORIES = ['Teknoloji', 'Tasarım', 'Yazılım', 'Kariyer', 'Yaşam', 'Girişimcilik'];
 
 export default function CreatePost() {
   const { user, isAdmin } = useAuth();
@@ -27,6 +25,19 @@ export default function CreatePost() {
   const [extraImages, setExtraImages] = useState<string[]>([]);
   const [imgSizes, setImgSizes] = useState<Record<number, string>>({});
   const [imgAligns, setImgAligns] = useState<Record<number, string>>({});
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const list = await getCategories();
+        setDbCategories(list.map(c => c.name));
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -259,16 +270,21 @@ export default function CreatePost() {
                   <FolderOpen size={14} style={{ display: 'inline', marginRight: 6, verticalAlign: 'middle' }} />
                   Kategori
                 </label>
-                <select
+                <input
                   id="category"
+                  type="text"
                   className="form-input"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                >
-                  {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  placeholder="Kategori yazın veya seçin..."
+                  list="category-options"
+                  required
+                />
+                <datalist id="category-options">
+                  {dbCategories.map(cat => (
+                    <option key={cat} value={cat} />
                   ))}
-                </select>
+                </datalist>
               </div>
 
               <div className="form-group">

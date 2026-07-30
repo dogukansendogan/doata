@@ -1,20 +1,30 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { PenSquare, LayoutDashboard, Bookmark, Search, LogOut, User, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import ThemeToggle from './ThemeToggle';
 import { useAuth } from '../context/AuthContext';
-
-const NAV_LINKS = [
-  { label: 'Teknoloji', path: '/kategori/teknoloji' },
-  { label: 'Tasarım', path: '/kategori/tasarim' },
-  { label: 'Yazılım', path: '/kategori/yazilim' },
-  { label: 'Kariyer', path: '/kategori/kariyer' },
-];
+import { getCategories } from '../api/posts';
 
 export default function Header() {
   const { user, logout, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [navLinks, setNavLinks] = useState<{ label: string; path: string }[]>([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const list = await getCategories();
+        setNavLinks(list.map(c => ({
+          label: c.name,
+          path: `/kategori/${c.slug}`
+        })));
+      } catch (err) {
+        console.error('Error fetching header navigation categories:', err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -57,7 +67,7 @@ export default function Header() {
           gap: '4px',
           alignItems: 'center',
         }}>
-          {NAV_LINKS.map(link => (
+          {navLinks.map(link => (
             <Link
               key={link.path}
               to={link.path}

@@ -18,13 +18,7 @@ import {
 
 // ==================== MOCK FALLBACK DATA ====================
 
-const CATEGORIES: Category[] = [
-  { id: 'c1', name: 'Teknoloji', slug: 'teknoloji', postCount: 0 },
-  { id: 'c2', name: 'Tasarım', slug: 'tasarim', postCount: 0 },
-  { id: 'c3', name: 'Yaşam', slug: 'yasam', postCount: 0 },
-  { id: 'c4', name: 'Yazılım', slug: 'yazilim', postCount: 0 },
-  { id: 'c5', name: 'Girişimcilik', slug: 'girisimcilik', postCount: 0 },
-];
+
 
 let mockPosts: Post[] = [];
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -172,6 +166,7 @@ export const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'read
 
   if (db) {
     try {
+      await ensureCategoryExists(rawPost.category);
       const docRef = await addDoc(collection(db, 'posts'), rawPost);
       return { ...rawPost, id: docRef.id };
     } catch (e) {
@@ -191,6 +186,9 @@ export const createPost = async (postData: Omit<Post, 'id' | 'createdAt' | 'read
 export const updatePost = async (id: string, postData: Partial<Post>): Promise<Post | null> => {
   if (db) {
     try {
+      if (postData.category) {
+        await ensureCategoryExists(postData.category);
+      }
       const postRef = doc(db, 'posts', id);
       // Strip undefined fields to prevent Firestore mismatches and write errors
       const sanitizedData: Record<string, any> = {};
@@ -516,12 +514,111 @@ export const getAllComments = async (): Promise<Comment[]> => {
 
 // ==================== CATEGORIES ====================
 
+export const slugify = (text: string): string => {
+  const trMap: Record<string, string> = {
+    'ç': 'c', 'Ç': 'c', 'ğ': 'g', 'Ğ': 'g', 'ı': 'i', 'İ': 'i',
+    'ö': 'o', 'Ö': 'o', 'ş': 's', 'Ş': 's', 'ü': 'u', 'Ü': 'u',
+    'â': 'a', 'î': 'i', 'û': 'u'
+  };
+  let str = text;
+  Object.keys(trMap).forEach(key => {
+    str = str.replace(new RegExp(key, 'g'), trMap[key]);
+  });
+  return str
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+};
+
 export const getCategories = async (): Promise<Category[]> => {
   const postsList = await getPosts();
-  return CATEGORIES.map(cat => ({
-    ...cat,
-    postCount: postsList.filter(p => p.category.toLowerCase() === cat.name.toLowerCase()).length,
+  
+  if (db) {
+    try {
+      const snap = await getDocs(collection(db, 'categories'));
+      if (!snap.empty) {
+        return snap.docs.map(d => {
+          const name = d.data().name || '';
+          return {
+            id: d.id,
+            name,
+            slug: d.data().slug || slugify(name),
+            postCount: postsList.filter(p => p.category.toLowerCase() === name.toLowerCase()).length
+          };
+        });
+      } else {
+        const defaults = ['Teknoloji', 'Tasarım', 'Yazılım', 'Kariyer'];
+        const list: Category[] = [];
+        for (const name of defaults) {
+          const docRef = await addDoc(collection(db, 'categories'), {
+            name,
+            slug: slugify(name),
+            createdAt: new Date().toISOString()
+          });
+          list.push({
+            id: docRef.id,
+            name,
+            slug: slugify(name),
+            postCount: postsList.filter(p => p.category.toLowerCase() === name.toLowerCase()).length
+          });
+        }
+        return list;
+      }
+    } catch (e) {
+      console.error('Firestore getCategories failed:', e);
+    }
+  }
+  
+  const defaults = ['Teknoloji', 'Tasarım', 'Yazılım', 'Kariyer'];
+  return defaults.map((name, i) => ({
+    id: `c${i + 1}`,
+    name,
+    slug: slugify(name),
+    postCount: postsList.filter(p => p.category.toLowerCase() === name.toLowerCase()).length
   }));
+};
+
+export const ensureCategoryExists = async (name: string): Promise<void> => {
+  if (!name || !db) return;
+  const cleanName = name.trim();
+  try {
+    const q = query(collection(db, 'categories'), where('name', '==', cleanName));
+    const snap = await getDocs(q);
+    if (snap.empty) {
+      await addDoc(collection(db, 'categories'), {
+        name: cleanName,
+        slug: slugify(cleanName),
+        createdAt: new Date().toISOString()
+      });
+    }
+  } catch (e) {
+    console.error('Firestore ensureCategoryExists failed:', e);
+  }
+};
+
+export const addCategory = async (name: string): Promise<boolean> => {
+  if (db) {
+    try {
+      await ensureCategoryExists(name);
+      return true;
+    } catch (e) {
+      console.error('Firestore addCategory failed:', e);
+    }
+  }
+  return false;
+};
+
+export const deleteCategory = async (id: string): Promise<boolean> => {
+  if (db) {
+    try {
+      await deleteDoc(doc(db, 'categories', id));
+      return true;
+    } catch (e) {
+      console.error('Firestore deleteCategory failed:', e);
+    }
+  }
+  return false;
 };
 
 // ==================== DASHBOARD STATS ====================

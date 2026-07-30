@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import {
   Edit, Trash2, LayoutDashboard, MessageSquare, BarChart2,
   Plus, Eye, Heart, Search, ArrowLeft, Check, X,
-  TrendingUp, FileText, UserCheck, Mail, ShieldAlert, Sparkles, BookOpen
+  TrendingUp, FileText, UserCheck, Mail, ShieldAlert, Sparkles, BookOpen, FolderOpen
 } from 'lucide-react';
-import type { Post, Comment, DashboardStats } from '../../types';
+import type { Post, Comment, DashboardStats, Category } from '../../types';
 import { 
   getPosts, 
   deletePost, 
@@ -17,18 +17,25 @@ import {
   rejectAdminRequest,
   getNewsletterSubscribers,
   type AdminRequest,
-  type Subscriber
+  type Subscriber,
+  getCategories,
+  addCategory,
+  deleteCategory
 } from '../../api/posts';
 
-type ActiveTab = 'posts' | 'comments' | 'requests' | 'subscribers' | 'analytics';
+import { useToast } from '../../context/ToastContext';
+
+type ActiveTab = 'posts' | 'comments' | 'requests' | 'subscribers' | 'analytics' | 'categories';
 type SortKey = 'views' | 'likes' | 'date';
 
 export default function AdminDashboard() {
+  const { addToast } = useToast();
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [requests, setRequests] = useState<AdminRequest[]>([]);
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [dbCategories, setDbCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('posts');
@@ -38,24 +45,28 @@ export default function AdminDashboard() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingCommentId, setDeletingCommentId] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [newCatName, setNewCatName] = useState('');
+  const [addingCat, setAddingCat] = useState(false);
 
   useEffect(() => { fetchAll(); }, []);
 
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const [postsData, statsData, commentsData, requestsData, subscribersData] = await Promise.all([
+      const [postsData, statsData, commentsData, requestsData, subscribersData, categoriesData] = await Promise.all([
         getPosts(),
         getDashboardStats(),
         getAllComments(),
         getPendingAdminRequests(),
         getNewsletterSubscribers(),
+        getCategories()
       ]);
       setPosts(postsData);
       setStats(statsData);
       setComments(commentsData);
       setRequests(requestsData);
       setSubscribers(subscribersData);
+      setDbCategories(categoriesData);
     } catch (err) {
       console.error('Veriler alınamadı:', err);
     } finally {
@@ -63,8 +74,46 @@ export default function AdminDashboard() {
     }
   };
 
-  // --- Posts derived data ---
-  const categories = useMemo(() => Array.from(new Set(posts.map(p => p.category))), [posts]);
+  const handleAddCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCatName.trim()) return;
+    setAddingCat(true);
+    try {
+      const success = await addCategory(newCatName);
+      if (success) {
+        addToast('Kategori başarıyla eklendi! ✓', 'success');
+        setNewCatName('');
+        const updated = await getCategories();
+        setDbCategories(updated);
+      } else {
+        addToast('Kategori eklenemedi.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      addToast('Kategori eklenirken hata oluştu.', 'error');
+    } finally {
+      setAddingCat(false);
+    }
+  };
+
+  const handleDeleteCat = async (id: string) => {
+    if (!window.confirm('Bu kategoriyi silmek istediğinizden emin misiniz?')) return;
+    try {
+      const success = await deleteCategory(id);
+      if (success) {
+        addToast('Kategori silindi.', 'success');
+        const updated = await getCategories();
+        setDbCategories(updated);
+      } else {
+        addToast('Kategori silinemedi.', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      addToast('Kategori silinirken hata oluştu.', 'error');
+    }
+  };
+
+
 
   const filteredPosts = useMemo(() => {
     let result = [...posts];
@@ -194,6 +243,7 @@ export default function AdminDashboard() {
         <nav className="admin-nav">
           {([
             { tab: 'posts', label: 'Yazı Yönetimi', icon: <FileText size={18} /> },
+            { tab: 'categories', label: 'Kategori Yönetimi', icon: <FolderOpen size={18} /> },
             { tab: 'comments', label: 'Yorumlar', icon: <MessageSquare size={18} /> },
             { tab: 'requests', label: 'Yazar Onayları', icon: <UserCheck size={18} />, badge: requests.length },
             { tab: 'subscribers', label: 'Bülten Aboneleri', icon: <Mail size={18} />, badge: subscribers.length },
@@ -285,8 +335,8 @@ export default function AdminDashboard() {
                     className="admin-select"
                   >
                     <option value="">Tüm Kategoriler</option>
-                    {categories.map(c => (
-                      <option key={c} value={c}>{c}</option>
+                    {dbCategories.map(c => (
+                      <option key={c.id} value={c.name}>{c.name}</option>
                     ))}
                   </select>
 
@@ -507,6 +557,87 @@ export default function AdminDashboard() {
                             {new Date(sub.createdAt).toLocaleDateString('tr-TR', {
                               day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
                             })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ======= CATEGORIES TAB ======= */}
+          {activeTab === 'categories' && (
+            <div className="admin-card fade-in" style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, color: 'var(--text-primary)' }}>Kategori Yönetimi</h3>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '4px' }}>Sistemdeki aktif kategorileri yönetin ve yenilerini ekleyin.</p>
+                </div>
+                
+                {/* Add Category Form */}
+                <form onSubmit={handleAddCategory} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={newCatName}
+                    onChange={e => setNewCatName(e.target.value)}
+                    placeholder="Yeni kategori adı..."
+                    required
+                    style={{ padding: '8px 14px', fontSize: '0.85rem', width: '220px', margin: 0 }}
+                  />
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                    disabled={addingCat}
+                    style={{ padding: '8px 18px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Plus size={14} /> Ekle
+                  </button>
+                </form>
+              </div>
+
+              {dbCategories.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '48px', border: '1px dashed var(--card-border)', borderRadius: '12px', color: 'var(--text-muted)' }}>
+                  <FolderOpen size={32} style={{ marginBottom: '8px' }} />
+                  <div>Henüz kategori bulunmuyor.</div>
+                </div>
+              ) : (
+                <div className="admin-table-wrapper">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Kategori Adı</th>
+                        <th>Slug</th>
+                        <th>Yazı Sayısı</th>
+                        <th style={{ textAlign: 'right' }}>İşlemler</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dbCategories.map(cat => (
+                        <tr key={cat.id}>
+                          <td style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{cat.name}</td>
+                          <td style={{ color: 'var(--text-secondary)', fontFamily: 'monospace', fontSize: '0.82rem' }}>{cat.slug}</td>
+                          <td>
+                            <span className="badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)', fontWeight: 600 }}>
+                              {cat.postCount} yazı
+                            </span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              onClick={() => handleDeleteCat(cat.id)}
+                              style={{
+                                background: 'transparent', border: 'none', color: 'var(--danger)',
+                                cursor: 'pointer', padding: '6px 12px', borderRadius: '4px',
+                                transition: 'all 0.2s', display: 'inline-flex', alignItems: 'center', gap: '4px',
+                                fontSize: '0.8rem', fontWeight: 600
+                              }}
+                              onMouseOver={e => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)')}
+                              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+                            >
+                              <Trash2 size={14} /> Sil
+                            </button>
                           </td>
                         </tr>
                       ))}

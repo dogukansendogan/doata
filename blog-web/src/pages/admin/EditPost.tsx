@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft, Save, Eye, Image, Upload } from 'lucide-react';
-import { getPostById, updatePost } from '../../api/posts';
+import { getPostById, updatePost, getCategories } from '../../api/posts';
 import { useToast } from '../../context/ToastContext';
-
-const CATEGORIES = ['Teknoloji', 'Tasarım', 'Yaşam', 'Yazılım', 'Girişimcilik'];
 
 export default function EditPost() {
   const { id } = useParams<{ id: string }>();
@@ -20,6 +18,19 @@ export default function EditPost() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchCats = async () => {
+      try {
+        const list = await getCategories();
+        setDbCategories(list.map(c => c.name));
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      }
+    };
+    fetchCats();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -265,16 +276,21 @@ export default function EditPost() {
 
               <div className="form-group" style={{ marginBottom: '16px' }}>
                 <label className="form-label" htmlFor="category">Kategori</label>
-                <select
+                <input
                   id="category"
+                  type="text"
                   className="form-input"
                   value={category}
                   onChange={e => setCategory(e.target.value)}
-                >
-                  {CATEGORIES.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                  placeholder="Kategori yazın veya seçin..."
+                  list="category-options"
+                  required
+                />
+                <datalist id="category-options">
+                  {dbCategories.map(cat => (
+                    <option key={cat} value={cat} />
                   ))}
-                </select>
+                </datalist>
               </div>
 
               <div className="form-group">
