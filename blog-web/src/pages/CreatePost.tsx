@@ -162,9 +162,9 @@ export default function CreatePost() {
   };
 
   return (
-    <div className="create-post fade-in-up" style={{ maxWidth: previewMode ? '1400px' : '860px', margin: '0 auto', transition: 'max-width 0.3s ease' }}>
+    <div className="create-post fade-in-up" style={{ maxWidth: '860px', margin: '0 auto' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
             padding: '10px', borderRadius: 'var(--radius-md)',
@@ -179,24 +179,66 @@ export default function CreatePost() {
             </p>
           </div>
         </div>
+      </div>
+
+      {/* Tab Switcher */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        background: 'var(--card-bg)',
+        border: '1px solid var(--card-border)',
+        padding: '6px',
+        borderRadius: 'var(--radius-md)',
+      }}>
         <button
           type="button"
-          onClick={() => setPreviewMode(!previewMode)}
-          className="btn-ghost"
-          style={{ padding: '8px 20px', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', background: previewMode ? 'var(--accent-light)' : 'transparent', borderColor: previewMode ? 'var(--accent)' : 'var(--card-border)' }}
+          onClick={() => setPreviewMode(false)}
+          style={{
+            flex: 1,
+            padding: '10px 16px',
+            borderRadius: 'var(--radius-sm)',
+            border: 'none',
+            background: !previewMode ? 'var(--accent)' : 'transparent',
+            color: !previewMode ? '#fff' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
         >
-          <Upload size={14} />
-          {previewMode ? 'Gelişmiş Önizleme Açık' : 'Önizleme Panelini Aç'}
+          📝 Yazıyı Düzenle
+        </button>
+        <button
+          type="button"
+          onClick={() => setPreviewMode(true)}
+          style={{
+            flex: 1,
+            padding: '10px 16px',
+            borderRadius: 'var(--radius-sm)',
+            border: 'none',
+            background: previewMode ? 'var(--accent)' : 'transparent',
+            color: previewMode ? '#fff' : 'var(--text-secondary)',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}
+        >
+          👁️ Canlı Önizleme
         </button>
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: previewMode ? '1fr 1fr' : '1fr',
-        gap: '30px',
-        alignItems: 'start'
-      }}>
-        {/* LEFT COLUMN: EDITOR FORM */}
+      {/* TAB CONTENT: WRITING EDITOR */}
+      {!previewMode ? (
         <div className="glass-card-static" style={{ padding: '28px' }}>
           <form onSubmit={handleSubmit}>
             {/* Title */}
@@ -364,7 +406,7 @@ export default function CreatePost() {
                         <button
                           type="button"
                           onClick={() => insertAtCursor(`\n\n![Görsel ${idx + 1}](${img})\n\n`)}
-                          style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
                           title="İmlecin olduğu yere yerleştir"
                         >
                           Ekle
@@ -372,7 +414,7 @@ export default function CreatePost() {
                         <button
                           type="button"
                           onClick={() => setExtraImages(prev => prev.filter((_, i) => i !== idx))}
-                          style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.7rem', cursor: 'pointer' }}
+                          style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.75rem', cursor: 'pointer' }}
                         >
                           Sil
                         </button>
@@ -424,43 +466,52 @@ export default function CreatePost() {
             </div>
           </form>
         </div>
-
-        {/* RIGHT COLUMN: LIVE RENDERED PREVIEW */}
-        {previewMode && (
-          <div className="glass-card-static fade-in" style={{ padding: '28px', height: 'calc(100vh - 180px)', overflowY: 'auto', position: 'sticky', top: '100px' }}>
-            <div style={{ borderBottom: '1px solid var(--card-border)', paddingBottom: '16px', marginBottom: '20px' }}>
-              <span className="badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)', marginBottom: '8px' }}>
-                {category}
-              </span>
-              <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0', lineHeight: 1.25, color: 'var(--text-primary)' }}>
-                {title || 'Yazı Başlığı...'}
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', marginTop: '6px' }}>
-                {excerpt || 'Kısa özet buraya gelecek...'}
-              </p>
-            </div>
-
-            {coverImage && (
-              <img
-                src={coverImage}
-                alt="Kapak Görseli"
-                style={{
-                  width: '100%',
-                  maxHeight: '260px',
-                  objectFit: 'cover',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '24px',
-                  border: '1px solid var(--card-border)'
-                }}
-              />
-            )}
-
-            <div className="markdown-content">
-              <ReactMarkdown>{content || '*Yazı içeriği henüz girilmedi...*'}</ReactMarkdown>
-            </div>
+      ) : (
+        /* TAB CONTENT: LIVE RENDERED PREVIEW */
+        <div className="glass-card-static fade-in" style={{ padding: '28px' }}>
+          <div style={{ borderBottom: '1px solid var(--card-border)', paddingBottom: '16px', marginBottom: '20px' }}>
+            <span className="badge" style={{ background: 'var(--accent-light)', color: 'var(--accent)', marginBottom: '8px' }}>
+              {category}
+            </span>
+            <h1 style={{ fontSize: '1.8rem', fontWeight: 800, margin: '8px 0', lineHeight: 1.25, color: 'var(--text-primary)' }}>
+              {title || 'Yazı Başlığı...'}
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', fontStyle: 'italic', marginTop: '6px' }}>
+              {excerpt || 'Kısa özet buraya gelecek...'}
+            </p>
           </div>
-        )}
-      </div>
+
+          {coverImage && (
+            <img
+              src={coverImage}
+              alt="Kapak Görseli"
+              style={{
+                width: '100%',
+                maxHeight: '380px',
+                objectFit: 'cover',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '24px',
+                border: '1px solid var(--card-border)'
+              }}
+            />
+          )}
+
+          <div className="markdown-content">
+            <ReactMarkdown>{content || '*Yazı içeriği henüz girilmedi...*'}</ReactMarkdown>
+          </div>
+
+          <div style={{ marginTop: '32px', borderTop: '1px solid var(--card-border)', paddingTop: '20px', display: 'flex', gap: '12px' }}>
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setPreviewMode(false)}
+              style={{ padding: '10px 20px' }}
+            >
+              📝 Düzenlemeye Geri Dön
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
