@@ -128,7 +128,14 @@ export const updatePost = async (id: string, postData: Partial<Post>): Promise<P
   if (db) {
     try {
       const postRef = doc(db, 'posts', id);
-      await updateDoc(postRef, postData);
+      // Strip undefined fields to prevent Firestore mismatches and write errors
+      const sanitizedData: Record<string, any> = {};
+      Object.entries(postData).forEach(([key, val]) => {
+        if (val !== undefined) {
+          sanitizedData[key] = val;
+        }
+      });
+      await updateDoc(postRef, sanitizedData);
       const snapshot = await getDoc(postRef);
       return snapshot.exists() ? mapDocToPost(snapshot.id, snapshot.data()) : null;
     } catch (e) {
