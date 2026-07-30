@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Clock, Eye, Heart, Bookmark, ArrowLeft, Calendar } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import type { Post, Comment } from '../types';
 import { getPostById, toggleLike, toggleBookmark } from '../api/posts';
 import CommentSection from '../components/CommentSection';
@@ -211,7 +212,7 @@ export default function PostDetail() {
 
                 {/* Article content */}
                 <div className="markdown-content">
-                  <ReactMarkdown>{post.content}</ReactMarkdown>
+                  <ReactMarkdown rehypePlugins={[rehypeRaw]}>{post.content}</ReactMarkdown>
                 </div>
 
                 {/* Medium Claps & Dev.to Emoji Reactions */}

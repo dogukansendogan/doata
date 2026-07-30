@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
+import rehypeRaw from 'rehype-raw';
 import { createPost } from '../api/posts';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -24,6 +25,8 @@ export default function CreatePost() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewMode, setPreviewMode] = useState(false);
   const [extraImages, setExtraImages] = useState<string[]>([]);
+  const [imgSizes, setImgSizes] = useState<Record<number, string>>({});
+  const [imgAligns, setImgAligns] = useState<Record<number, string>>({});
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,6 +79,24 @@ export default function CreatePost() {
       textarea.focus();
       textarea.selectionStart = textarea.selectionEnd = startPos + markdownText.length;
     }, 50);
+  };
+
+  const getImageHtml = (img: string, idx: number) => {
+    const size = imgSizes[idx] || 'medium';
+    const align = imgAligns[idx] || 'center';
+
+    let width = '450';
+    if (size === 'small') width = '200';
+    if (size === 'large') width = '100%';
+
+    let style = 'border-radius: 8px; display: block; margin: 20px auto; max-width: 100%;';
+    if (align === 'left') {
+      style = 'border-radius: 8px; float: left; margin: 0 20px 20px 0; max-width: 100%;';
+    } else if (align === 'right') {
+      style = 'border-radius: 8px; float: right; margin: 0 0 20px 20px; max-width: 100%;';
+    }
+
+    return `\n\n<img src="${img}" width="${width}" style="${style}" alt="Görsel" />\n\n`;
   };
 
   // Not logged in
@@ -398,23 +419,77 @@ export default function CreatePost() {
                   Henüz ekstra görsel yüklenmedi. Metin içinde kullanmak için resim yükleyebilirsiniz.
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {extraImages.map((img, idx) => (
-                    <div key={idx} style={{ position: 'relative', border: '1px solid var(--card-border)', borderRadius: 'var(--radius-sm)', overflow: 'hidden', background: '#000', aspectRatio: '1/1' }}>
-                      <img src={img} alt={`Extra ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'space-around', padding: '4px' }}>
+                    <div key={idx} style={{ display: 'flex', gap: '14px', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--card-border)' }}>
+                      {/* Image Thumbnail */}
+                      <img src={img} alt={`Extra ${idx}`} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: 'var(--radius-sm)', border: '1px solid var(--card-border)' }} />
+                      
+                      {/* Settings */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {/* Size */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Boyut:</span>
+                          {['small', 'medium', 'large'].map(sz => (
+                            <button
+                              key={sz}
+                              type="button"
+                              onClick={() => setImgSizes(prev => ({ ...prev, [idx]: sz }))}
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--card-border)',
+                                background: (imgSizes[idx] || 'medium') === sz ? 'var(--accent)' : 'transparent',
+                                color: (imgSizes[idx] || 'medium') === sz ? '#fff' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {sz === 'small' ? 'Küçük (200px)' : sz === 'medium' ? 'Orta (450px)' : 'Tam Genişlik'}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Alignment */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem' }}>
+                          <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>Hizalama:</span>
+                          {['left', 'center', 'right'].map(al => (
+                            <button
+                              key={al}
+                              type="button"
+                              onClick={() => setImgAligns(prev => ({ ...prev, [idx]: al }))}
+                              style={{
+                                padding: '4px 8px',
+                                fontSize: '0.7rem',
+                                borderRadius: 'var(--radius-sm)',
+                                border: '1px solid var(--card-border)',
+                                background: (imgAligns[idx] || 'center') === al ? 'var(--accent)' : 'transparent',
+                                color: (imgAligns[idx] || 'center') === al ? '#fff' : 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {al === 'left' ? '⬅ Sol' : al === 'center' ? '⚏ Orta' : '➡ Sağ'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'flex-end' }}>
                         <button
                           type="button"
-                          onClick={() => insertAtCursor(`\n\n![Görsel ${idx + 1}](${img})\n\n`)}
-                          style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer' }}
-                          title="İmlecin olduğu yere yerleştir"
+                          onClick={() => insertAtCursor(getImageHtml(img, idx))}
+                          className="btn-primary"
+                          style={{ padding: '6px 12px', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
                         >
-                          Ekle
+                          Yazıya Ekle
                         </button>
                         <button
                           type="button"
                           onClick={() => setExtraImages(prev => prev.filter((_, i) => i !== idx))}
-                          style={{ background: 'none', border: 'none', color: 'var(--danger)', fontSize: '0.75rem', cursor: 'pointer' }}
+                          style={{ background: 'transparent', border: 'none', color: 'var(--danger)', fontSize: '0.75rem', cursor: 'pointer' }}
                         >
                           Sil
                         </button>
@@ -497,7 +572,7 @@ export default function CreatePost() {
           )}
 
           <div className="markdown-content">
-            <ReactMarkdown>{content || '*Yazı içeriği henüz girilmedi...*'}</ReactMarkdown>
+            <ReactMarkdown rehypePlugins={[rehypeRaw]}>{content || '*Yazı içeriği henüz girilmedi...*'}</ReactMarkdown>
           </div>
 
           <div style={{ marginTop: '32px', borderTop: '1px solid var(--card-border)', paddingTop: '20px', display: 'flex', gap: '12px' }}>
